@@ -38,8 +38,7 @@ def evaluate(cfg):
     """
     model = PPO.load(cfg["model_pkl"])
     env = Monitor(gym.make(cfg["env_id"]))
-    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=cfg["n_eval_episodes"], deterministic=True,
-                                              render=True)
+    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=cfg["n_eval_episodes"], render=cfg["render"])
     print(f'{mean_reward}+={std_reward}')
 
 

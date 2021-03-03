@@ -20,6 +20,7 @@ def get_cfg():
     parser.add_argument('--n_cpu', type=int, default=multiprocessing.cpu_count() / 2)
     parser.add_argument('--n_eval_episodes', type=int, default=10)
     parser.add_argument('--train', action='store_true')
+    parser.add_argument('--render', action='store_true')
     args = parser.parse_args()
 
     args_dict = vars(args)
