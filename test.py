@@ -26,7 +26,7 @@ def train(cfg):
     """
     Train a model with the given config
     """
-    env = SubprocVecEnv([make_env(cfg, i, cfg["seed"]) for i in range(6)])
+    env = SubprocVecEnv([make_env(cfg, i, cfg["seed"]) for i in range(cfg["n_cpu"])])
     model = PPO('MlpPolicy', env, tensorboard_log=cfg["model_pkl"], verbose=True)
     model.learn(total_timesteps=cfg["timesteps"])
     model.save()
@@ -38,7 +38,8 @@ def evaluate(cfg):
     """
     model = PPO.load(cfg["model_pkl"])
     env = Monitor(gym.make(cfg["env_id"]))
-    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10, deterministic=True, render=True)
+    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=cfg["n_eval_episodes"], deterministic=True,
+                                              render=True)
     print(f'{mean_reward}+={std_reward}')
 
 
