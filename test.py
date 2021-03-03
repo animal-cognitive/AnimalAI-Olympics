@@ -1,10 +1,11 @@
 import gym
-from arg import get_cfg
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import SubprocVecEnv
+
+from config import get_cfg
 
 
 def make_env(cfg, rank=0, seed=0):
