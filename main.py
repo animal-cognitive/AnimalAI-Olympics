@@ -1,9 +1,8 @@
 import gym
-from stable_baselines3 import A2C
-from stable_baselines3.common.env_util import make_atari_env
-from stable_baselines3.common.evaluation import evaluate_policy
+import ray
+from ray.rllib.agents.a3c import A3CTrainer
+from ray.tune.logger import pretty_print
 from stable_baselines3.common.utils import set_random_seed
-from stable_baselines3.common.vec_env import VecFrameStack
 
 from config import get_cfg
 
@@ -26,23 +25,36 @@ def train(cfg):
     """
     Train a model with the given config
     """
-    # Needed to use this fix https://stackoverflow.com/a/64104353 bruh am I getting hacked
-    env = make_atari_env(cfg["env_id"], n_envs=cfg["n_cpu"], seed=cfg["seed"])
-    env = VecFrameStack(env, n_stack=4)
-    model = A2C('CnnPolicy', env, tensorboard_log=cfg["model_pkl"], verbose=True)
-    model.learn(total_timesteps=cfg["timesteps"])
-    model.save(cfg["model_pkl"])
+    trainer = get_trainer(cfg)
+    for i in range(1000):
+        result = trainer.train()
+        print(pretty_print(result))
+
+        if i > 0 and i % 100 == 0:
+            save_checkpoint(trainer)
+        if result["timesteps_total"] >= cfg["timesteps"]:
+            print("done training")
+            save_checkpoint(trainer)
+            break
 
 
-def evaluate(cfg):
+def get_trainer(cfg):
+    trainer = A3CTrainer(config={
+        "env": cfg["env_id"],
+        "num_gpus": 0,
+        "num_workers": 1,
+        "framework": 'torch',
+    })
+    return trainer
+
+
+def save_checkpoint(trainer):
     """
-    Test a model and return statistics
+    Save a checkpoint of the trainer
     """
-    env = make_atari_env(cfg["env_id"])
-    env = VecFrameStack(env, n_stack=4)
-    model = A2C.load(cfg["model_pkl"], env)
-    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=cfg["n_eval_episodes"], render=cfg["render"])
-    print(f'{mean_reward}+={std_reward}')
+    checkpoint = trainer.save()
+    print("checkpoint saved at", checkpoint)
+    return checkpoint
 
 
 def main():
@@ -51,8 +63,7 @@ def main():
     if cfg["train"]:
         train(cfg)
 
-    evaluate(cfg)
-
 
 if __name__ == '__main__':
+    ray.init()
     main()
