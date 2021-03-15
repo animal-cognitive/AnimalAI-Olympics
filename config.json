@@ -1,12 +1,25 @@
 {
   "test": {
     "comment": "",
-    "timesteps": 10000,
-    "env_id": "CartPole-v0"
+    "goal_reward": 200,
+    "env_id": "CartPole-v0",
+    "stop": {
+      "timesteps_total": 10000
+    }
+  },
+  "to_200": {
+    "comment": "",
+    "goal_reward": 200,
+    "env_id": "CartPole-v0",
+    "stop": {
+      "episode_reward_mean": 200
+    }
   },
   "atari": {
     "comment": "RL Baselines Zoo 3 uses 1e7 timesteps for successful training (link https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/a2c.yml)",
-    "timesteps": 100000,
-    "env_id": "PongNoFrameskip-v4"
+    "env_id": "PongNoFrameskip-v4",
+    "stop": {
+      "timesteps_total": 100000
+    }
   }
 }

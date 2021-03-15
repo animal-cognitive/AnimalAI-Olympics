@@ -1,7 +1,6 @@
 import argparse
 import json
 import multiprocessing
-from pathlib import Path
 
 """
 Argument and config parsing
@@ -19,6 +18,7 @@ def get_cfg():
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--n_cpu', type=int, default=int(multiprocessing.cpu_count() / 2))
     parser.add_argument('--n_eval_episodes', type=int, default=10)
+    parser.add_argument('--local_dir', type=str, default='./ray_results')
     parser.add_argument('--train', action='store_true')
     parser.add_argument('--render', action='store_true')
     args = parser.parse_args()
@@ -40,5 +40,5 @@ def propagate_fields(cfg_dict):
     """
     Fill in some fields which are transforms of user-defined config
     """
-    cfg_dict["home"] = Path(cfg_dict["root"]) / 'runs' / cfg_dict["name"]
-    cfg_dict["model_pkl"] = cfg_dict["home"] / f'DQN-{cfg_dict["env_id"]}-{cfg_dict["timesteps"]}.zip'
+    # cfg_dict["home"] = Path(cfg_dict["root"]) / 'runs' / cfg_dict["name"]
+    # cfg_dict["model_pkl"] = cfg_dict["home"] / f'DQN-{cfg_dict["env_id"]}-{cfg_dict["timesteps"]}.zip'
