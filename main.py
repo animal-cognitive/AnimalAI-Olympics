@@ -14,6 +14,8 @@ def train(cfg):
     """
     Train a model with the given config
     """
+
+    # Transform our config to a Ray config
     ray_cfg = {
         "env": cfg["env_id"],
         "num_gpus": 0,
@@ -21,10 +23,16 @@ def train(cfg):
         "framework": 'torch',
         "model": {
             "custom_model": "my_pytorch_model",
-            "custom_model_config": {},
         },
         "log_level": 'INFO',
     }
+
+    """Use Ray Tune to train an agent.
+    Configure cfg["stop"] for what criterion to use to stop training (e.g. timesteps_total, episode_reward_mean).
+    https://docs.ray.io/en/master/tune/index.html
+    The results will be saved in ./ray_results and can be loaded by instantiating an Analysis.
+    https://docs.ray.io/en/master/tune/api_docs/analysis.html#analysis-tune-analysis
+    """
     analysis = ray.tune.run(
         PPOTrainer,
         config=ray_cfg,
@@ -37,9 +45,7 @@ def train(cfg):
 
 def main():
     cfg = get_cfg()
-
-    if cfg["train"]:
-        train(cfg)
+    train(cfg)
 
 
 if __name__ == '__main__':
