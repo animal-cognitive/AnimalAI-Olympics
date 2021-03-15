@@ -1,7 +1,9 @@
-from mlagents.trainers.trainer_util import load_config
+import subprocess
+
 from animalai_train.run_options_aai import RunOptionsAAI
 from animalai_train.run_training_aai import run_training_aai
-import subprocess
+from mlagents.trainers.trainer_util import load_config
+
 
 def main():
     with open("examples/configurations/training_configurations/train_ml_agents_config_ppo.yaml") as f:
@@ -10,8 +12,6 @@ def main():
     warnings.filterwarnings('ignore')
     import tensorflow as tf
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-
-
 
     trainer_config_path = (
         "examples/configurations/training_configurations/train_ml_agents_config_ppo.yaml"
@@ -40,6 +40,7 @@ def main():
     subprocess.run(f"tensorboard --logdir {logs_dir}")
 
     run_training_aai(0, args)
+
 
 def load_agent_get_action(environment):
     agent_groups = environment.get_agent_groups()
@@ -82,5 +83,24 @@ def load_agent_get_action(environment):
     environment.close()
 
 
+def play():
+    from animalai.envs.arena_config import ArenaConfig
+    from animalai.envs.environment import AnimalAIEnvironment
+    from mlagents_envs.exception import UnityCommunicationException
+
+    environment = None
+    try:
+        environment = AnimalAIEnvironment(
+            file_name='examples/env/AnimalAI',
+            base_port=5005,
+            arenas_configurations=ArenaConfig('examples/configurations/arena_configurations/light_switch.yml'),
+            play=True,
+        )
+    except UnityCommunicationException:
+        # you'll end up here if you close the environment window directly
+        # always try to close it from script
+        environment.close()
+
+
 if __name__ == '__main__':
-    main()
+    play()

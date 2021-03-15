@@ -43,4 +43,6 @@ Okay we are not using ray. W are using stable-baselines3. Pretty good. I like it
    - [ ] Templated arena manager class
    - [ ] Arena with Ray spaces defined
       - Why? I think we can run grid search in parallel
+      - Update: won't do. I want to control the randomization, 
+        rather than a grid search.
    - [ ] Tests
