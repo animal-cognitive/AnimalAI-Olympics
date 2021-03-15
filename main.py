@@ -4,10 +4,11 @@ from ray.rllib.models import ModelCatalog
 from ray.tune.logger import pretty_print
 
 from config import get_cfg
-from custom_model import MyFCForwardModel
+from custom_model import MyFCForwardModel, MyRNNModel
 
-# Register custom model so that we can give the ID to the policy trainer
-ModelCatalog.register_custom_model("my_pytorch_model", MyFCForwardModel)
+# Register custom models so that we can give the ID to the policy trainer
+ModelCatalog.register_custom_model("my_fc_model", MyFCForwardModel)
+ModelCatalog.register_custom_model("my_rnn_model", MyRNNModel)
 
 
 def train(cfg):
@@ -19,10 +20,10 @@ def train(cfg):
     ray_cfg = {
         "env": cfg["env_id"],
         "num_gpus": 0,
-        "num_workers": 1,
+        "num_workers": 8,
         "framework": 'torch',
         "model": {
-            "custom_model": "my_pytorch_model",
+            "custom_model": "my_rnn_model",
         },
         "log_level": 'INFO',
     }

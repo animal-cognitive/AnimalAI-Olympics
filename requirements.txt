@@ -1,2 +1,3 @@
 ray[tune,rllib]
 gym
+torch
