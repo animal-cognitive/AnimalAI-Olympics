@@ -7,7 +7,6 @@ from animalai.envs.arena_config import ArenaConfig
 
 # this is a dummy agent that I can use to interact with the environment.
 # the goal is to create a environment and throw it into baselines unity integration.
-# I allocate 20 minutes to it right now.
 
 def main():
     env = AnimalAIGym(
@@ -15,7 +14,7 @@ def main():
             arenas_configurations=ArenaConfig('examples/configurations/curriculum/0.yml')
         )
     model = PPO('MlpPolicy', env, verbose=1)
-    model.learn(total_timesteps=10)
+    model.learn(total_timesteps=1000)
 
     obs = env.reset()
     for i in range(1000):

@@ -1,77 +1,43 @@
-class CollectData:
-    def __init__(self, agent):
-        self.agent = None
-
-    def collect(self, arena):
-        return FeatureData
+import gym
+import ray
+import ray.rllib.agents.ppo as ppo
+from ray.tune.logger import pretty_print
 
 
-class FeatureData:
-    def __init__(self):
-        pass
+def access_agent():
+    import ray
+    from ray import tune
 
-    def pickle(self):
-        """
-        Pickle the feature data
-        Also in a separate json store all feature data's environment.
-        """
-        pass
+    ray.init(include_dashboard=False)
+    config = {
+            "env": "CartPole-v0",
+            "num_gpus": 0,
+            "num_workers": 1,
+            "lr": tune.grid_search([0.0001]), #([0.01, 0.001, 0.0001]),
+        }
+    analysis=tune.run(
+        "PPO",
+        stop={"episode_reward_mean": 120},
+        config=config,
+        local_dir="log",
+        checkpoint_at_end=True
+    )
 
-class Arena:
-    def __init__(self):
-        pass
-
-def run():
-    from animalai.envs.arena_config import ArenaConfig
-    from animalai.envs.environment import AnimalAIEnvironment
-    from mlagents_envs.exception import UnityCommunicationException
-    try:
-        environment = AnimalAIEnvironment(
-                file_name='examples/env/AnimalAI',
-                base_port=5005,
-                arenas_configurations=ArenaConfig('examples/configurations/curriculum/0.yml'),
-                play=False,
-            )
-    except UnityCommunicationException:
-        # you'll end up here if you close the environment window directly
-        # always try to close it from script
-        environment.close()
-
-    # if environment:
-    #     environment.close()  # takes a few seconds
-
-    import numpy as np
-
-    actions = [[0, 0]] * 50  # Do nothing until the lights come back on
-    actions += [[1, 0]] * 40  # Go forward
-    actions += [[0, 2]] * 15  # turn left
-    actions += [[1, 0]] * 50  # go forward again
-
-    agent_groups = environment.get_agent_groups()
-    agent_group_spec = environment.get_agent_group_spec(agent_groups[0])
-
-    agent_group = agent_groups[0]
-    visual_observations = []
-    velocity_observations = []
-    rewards = []
-    done = False
-    step = 0
-
-    while not done and step < len(actions):
-        action = np.array(actions[step]).reshape(1, 2)
-
-        environment.set_actions(agent_group=agent_group, action=action)
-        environment.step()
-        step_result = environment.get_step_result(agent_group)
-
-        visual_observations.append(step_result.obs[0])
-        velocity_observations.append(step_result.obs[1])
-        done = step_result.done[0]
-        rewards.append(step_result.reward[0])
-        max_step_reached = step_result.max_step[0]
-        step += 1
-
-    environment.close()
+    # list of lists: one list per checkpoint; each checkpoint list contains
+    # 1st the path, 2nd the metric value
+    checkpoints = analysis.get_trial_checkpoints_paths(
+        trial=analysis.get_best_trial("episode_reward_mean", mode="max"),
+        metric="episode_reward_mean")
+    print(checkpoints)
+    env = gym.make('CartPole-v0')
+    config = {
+        "env": "CartPole-v0",
+        "num_gpus": 0,
+        "num_workers": 1,
+    }
+    checkpoint_path= checkpoints[0][0]
+    agent = ppo.PPOTrainer(config=config)
+    agent.restore(checkpoint_path)
 
 if __name__ == '__main__':
-    run()
+    access_agent()
