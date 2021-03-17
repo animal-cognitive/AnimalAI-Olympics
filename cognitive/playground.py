@@ -93,7 +93,7 @@ def play():
         environment = AnimalAIEnvironment(
             file_name='examples/env/AnimalAI',
             base_port=5005,
-            arenas_configurations=ArenaConfig('examples/configurations/arena_configurations/light_switch.yml'),
+            arenas_configurations=ArenaConfig('competition_configurations/3-1-2.yml'),
             play=True,
         )
     except UnityCommunicationException:

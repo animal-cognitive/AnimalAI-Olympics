@@ -2,12 +2,12 @@ from cognitive.primitive_arena import BeforeOrBehind
 
 def test_modify_yaml():
     bob = BeforeOrBehind()
-    bob.modify_yaml_and_dump(30, 32, 0)
+    bob.modify_yaml(30, 32, 0)
 
 
 def test_play_modified_yaml():
     bob = BeforeOrBehind()
-    arena_config = bob.modify_yaml_and_dump(10, 13, 0)
+    arena_config = bob.modify_yaml(10, 13, 0)
     bob.play(arena_config)
 
 
