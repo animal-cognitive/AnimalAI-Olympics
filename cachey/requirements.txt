@@ -1,0 +1,3 @@
+ray[tune,rllib]
+gym
+# torch # Install through conda
