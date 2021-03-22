@@ -36,7 +36,7 @@ class MyConvGRUModel(RecurrentNetwork, nn.Module):
             input_dim=1,
             hidden_dim=gru_hidden_dims,
             kernel_size=(3, 3),
-            num_layers=3,
+            num_layers=len(gru_hidden_dims),
             batchnorm=False,
             batch_first=True,
             activation=F.tanh
