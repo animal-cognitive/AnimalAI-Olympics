@@ -98,6 +98,7 @@ def example_instrument(cfg):
         print('input features:', in_features.shape, 'previous state:', [s.shape for s in in_state])
         # Expect (1 x 1 x 256) coming out of LSTM. This is the DIR.
         print('DIR output:', out_features.shape, 'current state:', [s.shape for s in out_state])
+
     model.lstm.register_forward_hook(print_dir_shape)
 
     # Pass observations to our model
@@ -106,7 +107,7 @@ def example_instrument(cfg):
 
 def main():
     cfg = get_cfg()
-    example_instrument(cfg)
+    # example_instrument(cfg)
     if cfg["train"]:
         train(cfg)
 

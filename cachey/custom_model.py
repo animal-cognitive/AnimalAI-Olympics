@@ -103,15 +103,13 @@ class MyConvGRUModel(RecurrentNetwork, nn.Module):
 
 class MyRNNModel(RecurrentNetwork, nn.Module):
 
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name,
-                 fc_size=64,
-                 lstm_state_size=256):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
         super().__init__(obs_space, action_space, num_outputs, model_config, name)
         nn.Module.__init__(self)
 
         self.obs_size = get_preprocessor(obs_space)(obs_space).size
-        self.fc_size = fc_size
-        self.lstm_state_size = lstm_state_size
+        self.fc_size = 64
+        self.lstm_state_size = 256
 
         # Build the Module from fc + LSTM + 2xfc (action + value outs).
         self.fc1 = nn.Linear(self.obs_size, self.fc_size)
