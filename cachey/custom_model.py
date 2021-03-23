@@ -85,19 +85,19 @@ class MyConvGRUModel(RecurrentNetwork, nn.Module):
         # Copy from RecurrentNetwork code
         # The default RecurrentNetwork flattens the observation first.
         # We want to preserve spatials.
-        inputs = input_dict["obs"].float()
-        inputs = inputs.unsqueeze(dim=1).float()  # Add channel dim
+        obs = input_dict["obs"].float()
+        obs = obs.unsqueeze(dim=1).float()  # Add channel dim
         if isinstance(seq_lens, np.ndarray):
             seq_lens = torch.Tensor(seq_lens).int()
-        max_seq_len = inputs.shape[0] // seq_lens.shape[0]
+        max_seq_len = obs.shape[0] // seq_lens.shape[0]
         self.time_major = self.model_config.get("_time_major", False)
-        inputs = add_time_dimension(
-            inputs,
+        obs = add_time_dimension(
+            obs,
             max_seq_len=max_seq_len,
             framework="torch",
             time_major=self.time_major,
         )
-        output, new_state = self.forward_rnn(inputs, state, seq_lens)
+        output, new_state = self.forward_rnn(obs, state, seq_lens)
         output = torch.reshape(output, [-1, self.num_outputs])
         return output, new_state
 
