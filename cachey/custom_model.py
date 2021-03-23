@@ -85,22 +85,19 @@ class MyConvGRUModel(RecurrentNetwork, nn.Module):
         # Copy from RecurrentNetwork code
         # The default RecurrentNetwork flattens the observation first.
         # We want to preserve spatials.
-        obs = input_dict["obs"].float()
-        obs = obs.unsqueeze(dim=1).float()  # Add channel dim
-
-        obs = self.encode_observation(obs)  # Encode observation using UNet-style encoder
-
+        inputs = input_dict["obs"].float()
+        inputs = inputs.unsqueeze(dim=1).float()  # Add channel dim
         if isinstance(seq_lens, np.ndarray):
             seq_lens = torch.Tensor(seq_lens).int()
-        max_seq_len = obs.shape[0] // seq_lens.shape[0]
+        max_seq_len = inputs.shape[0] // seq_lens.shape[0]
         self.time_major = self.model_config.get("_time_major", False)
-        obs = add_time_dimension(
-            obs,
+        inputs = add_time_dimension(
+            inputs,
             max_seq_len=max_seq_len,
             framework="torch",
             time_major=self.time_major,
         )
-        output, new_state = self.forward_rnn(obs, state, seq_lens)
+        output, new_state = self.forward_rnn(inputs, state, seq_lens)
         output = torch.reshape(output, [-1, self.num_outputs])
         return output, new_state
 
@@ -114,6 +111,7 @@ class MyConvGRUModel(RecurrentNetwork, nn.Module):
             NN Outputs (B x T x ...) as sequence.
             The state batches as a List of two items (c- and h-states).
         """
+        # TODO: Feed through a CNN first?
         self._features, h = self.gru(inputs, state)
         self._features = self._features.view(-1, self.flat_size)
         action_out = self.action_branch(self._features)
