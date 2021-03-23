@@ -12,4 +12,4 @@ We have the
 
 All these tests can be found in the examples/configurations/curriculum folder.
 
-Also added two notebooks for setting up RayLlib with the AnimalAI Environment
+Also added two notebooks for setting up RayLlib with the AnimalAI Environment. The Notebooks can be found in the examples folder
