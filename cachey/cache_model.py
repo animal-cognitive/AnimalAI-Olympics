@@ -111,7 +111,8 @@ class MyCNNRNNModel(RecurrentNetwork, nn.Module):
         # We want to preserve spatials.
         x = input_dict["obs"].float()
         if len(x.shape[1:]) < 3:
-            x = x.unsqueeze(dim=1).float()  # Add channel dim
+            x = x.unsqueeze(dim=3).float()  # Add channel dim
+        x = x.permute(0, 3, 1, 2)  # Permute to (B x C x W x H)
         x = self.cnn(x)
         x = F.relu(self.linear(x))
 
