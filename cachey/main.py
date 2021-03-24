@@ -26,8 +26,8 @@ def train(cfg):
     # Transform our config to a Ray config
     ray_cfg = {
         "env": cfg["env_id"],
-        "num_gpus": 1,
-        "num_workers": 8,
+        "num_gpus": 0,
+        "num_workers": 0,
         "framework": 'torch',
         "model": {
             "custom_model": 'my_cnn_rnn_model',

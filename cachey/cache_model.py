@@ -1,5 +1,6 @@
 """
 Custom models specific to Cache architecture.
+This is the only tested implementation, see bottom.
 """
 
 import operator
@@ -8,20 +9,37 @@ from functools import reduce
 
 import gym
 import numpy as np
+import ray
 import torch
 import torch.nn.functional as F
-from ray.rllib.env.wrappers.atari_wrappers import wrap_deepmind
-from ray.rllib.models import ModelV2
+from parameterized import parameterized_class, parameterized
+from ray.rllib.agents.ppo import PPOTrainer
+from ray.rllib.env.atari_wrappers import wrap_deepmind
+from ray.rllib.models import ModelV2, ModelCatalog
 from ray.rllib.models.preprocessors import get_preprocessor
 from ray.rllib.models.torch.recurrent_net import RecurrentNetwork
 from ray.rllib.policy.rnn_sequencing import add_time_dimension
 from ray.rllib.utils import override
 from torch import nn
 
+from cachey.animalai_env import AnimalAIRayEnv
+
 
 class MyCNNRNNModel(RecurrentNetwork, nn.Module):
     """
     Feeds observations to a CNN, then LSTM.
+    Can use only the CNN with custom_model_config.
+    Docs: https://docs.ray.io/en/master/rllib-models.html#custom-pytorch-models
+
+    Use it like this:
+    ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
+    config = {
+    ...
+    "custom_model": 'my_cnn_rnn_model',
+    "custom_model_config": {
+        'gimme_lstm': True|False
+    }
+    }
     """
 
     def __init__(self, obs_space, action_space, num_outputs, model_config, name):
@@ -153,36 +171,52 @@ class MyCNNRNNModel(RecurrentNetwork, nn.Module):
         return output, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
 
-def get_model(env_id, options):
-    env = gym.make(env_id)
-    env = wrap_deepmind(env, framestack=False)
-    obs_space = env.observation_space
-    action_space = env.action_space
-    num_outputs = env.action_space.n
-    model_config = options
-    name = 'test'
-    prep = get_preprocessor(env.observation_space)(env.observation_space)
-    obs = torch.cat(
-        [torch.from_numpy(prep.transform(env.observation_space.sample())).permute(2, 0, 1) for _ in range(100)],
-        dim=0)
-    input_dict = {
-        "obs": obs,
-    }
-    model = MyCNNRNNModel(obs_space, action_space, num_outputs, model_config, name)
-    return model, input_dict
-
-
+@parameterized_class(('model_config'), [
+    ({'gimme_lstm': False},),  # CNN only
+    ({'gimme_lstm': True},),  # CNN+LSTM
+    ({},),  # Also CNN+LSTM, just checking that the defaults are sane
+])
 class TestMyCNNLSTMModel(unittest.TestCase):
+    """Test both CNN-only and CNN+LSTM"""
 
-    def test_sanity_cnn_only(self):
-        model, input_dict = get_model('PongNoFrameskip-v4', {'gimme_lstm': False})
-        model(input_dict)
+    def test_sanity(self):
+        """Test simple passing observations."""
+        env = wrap_deepmind(gym.make('Pong-v4'))
+        prep = get_preprocessor(env.observation_space)(env.observation_space)
+        obs = torch.stack([torch.from_numpy(prep.transform(env.observation_space.sample())) for _ in range(100)], dim=0)
+        input_dict = {
+            "obs": obs,
+        }
+        model = MyCNNRNNModel(env.observation_space, env.action_space, env.action_space.n, self.model_config, 'test')
+        if model.use_lstm:
+            state = [s.unsqueeze(0) for s in model.get_initial_state()]
+            seq_lens = torch.tensor([input_dict["obs"].shape[0]])  # One sequence of the whole thing
+            model(input_dict, state, seq_lens)
+        else:
+            model(input_dict)
+        env.close()
 
-    def test_sanity_cnn_lstm(self):
-        model, input_dict = get_model('Pong-v4', {})
-        state = [s.unsqueeze(0) for s in model.get_initial_state()]
-        seq_lens = torch.tensor([input_dict["obs"].shape[0]])  # One sequence of the whole thing
-        model(input_dict, state, seq_lens)
+    @parameterized.expand([
+        (AnimalAIRayEnv, {
+            'environment_filename': '../examples/env_windows/AnimalAI',
+            'yaml_path': '../examples/configurations/curriculum/0.yml',
+        }),  # Try AnimalAI environment
+        ('Pong-v4', {}),  # Test on Pong environment, which we know to work
+    ])
+    def test_trainonebatch(self, env, env_config):
+        """Test hooking into an RLLib trainer."""
+        ray.shutdown()
+        ray.init(include_dashboard=False)
+        ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
+        trainer = PPOTrainer(env=env, config={
+            "model": {
+                "custom_model": 'my_cnn_rnn_model',
+                "custom_model_config": self.model_config,
+            },
+            "env_config": env_config,
+            "framework": 'torch',
+        })
+        trainer.train()
 
 
 if __name__ == '__main__':
