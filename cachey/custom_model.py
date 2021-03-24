@@ -1,4 +1,6 @@
-"""A custom RLLib model. It acts as a Torch module which takes observations and outputs actions and values."""
+"""
+Some custom RLLib models
+"""
 import functools
 import operator
 
@@ -57,24 +59,6 @@ class MyConvGRUModel(RecurrentNetwork, nn.Module):
     def value_function(self):
         assert self._features is not None, "must call forward() first"
         return torch.reshape(self.value_branch(self._features), [-1])
-
-    def encode_observation(self, observation):
-        """
-        Encode a batch of observations.
-        Receives a 4d batch of observations, dimensions (B x C x W x H)
-        - B=Batch
-        - C=Channel
-        - W,H=Width,Height
-
-        Returns a batch of encoded observations, dimensions still (B x C x W x H)
-        Batch size should be the same
-        Output size (channels and spatials) are defined by the UNet
-        """
-
-        # TODO Hamad integrates UNet here.
-        # return self.unet(observation)
-
-        return observation  # TODO delete this once UNet is implemented
 
     @override(ModelV2)
     def forward(self, input_dict,
@@ -172,12 +156,8 @@ class MyRNNModel(RecurrentNetwork, nn.Module):
         return action_out, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
 
-class MyFCForwardModel(TorchModelV2, nn.Module):
-    """PyTorch custom model.
-    It just forwards a fully connected net (and should act the same as the default for non-image observations).
-    Taken from example: https://github.com/ray-project/ray/blob/master/rllib/examples/models/custom_loss_model.py
-
-    See https://docs.ray.io/en/master/rllib-models.html#custom-pytorch-models for how it works and how to extend it.
+class MyCNNModel(TorchModelV2, nn.Module):
+    """PyTorch custom model which encodes the observation with a CNN before passing it to the policy/value network.
     """
 
     def __init__(self, obs_space, action_space, num_outputs, model_config, name, *args, **kwargs):
@@ -192,9 +172,29 @@ class MyFCForwardModel(TorchModelV2, nn.Module):
             model_config,
             name="fcnet")
 
+    def encode_observation(self, observation):
+        """
+        Encode a batch of observations.
+        Receives a 4d batch of observations, dimensions (B x C x W x H)
+        - B=Batch
+        - C=Channel
+        - W,H=Width,Height
+
+        Returns a batch of encoded observations, dimensions still (B x C x W x H)
+        Batch size should be the same
+        Output size (channels and spatials) are defined by the UNet
+        """
+
+        # TODO Hamad integrates UNet here.
+        # return self.unet(observation)
+
+        return observation  # TODO delete this once UNet is implemented
+
     @override(ModelV2)
     def forward(self, input_dict, state, seq_lens):
         """Delegate to our FCNet."""
+        obs = input_dict["obs"].float()
+        conv_out = self.encode_observation(obs)
         return self.fcnet(input_dict, state, seq_lens)
 
     @override(TorchModelV2)

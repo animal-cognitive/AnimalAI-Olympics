@@ -3,13 +3,15 @@ from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.models import ModelCatalog
 from ray.tune.logger import pretty_print
 
+from cache_model import *
 from config import get_cfg
 from custom_model import *
 
 # Register custom models so that we can give the ID to the policy trainer
-ModelCatalog.register_custom_model("my_fc_model", MyFCForwardModel)
+# ModelCatalog.register_custom_model("my_fc_model", MyFCForwardModel)
 ModelCatalog.register_custom_model("my_rnn_model", MyRNNModel)
 ModelCatalog.register_custom_model("my_convgru_model", MyConvGRUModel)  # NOTE: Only works with image observations.
+ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
 
 
 def train(cfg):
@@ -25,12 +27,12 @@ def train(cfg):
     ray_cfg = {
         "env": cfg["env_id"],
         "num_gpus": 1,
-        "num_workers": 0,
+        "num_workers": 8,
         "framework": 'torch',
         "model": {
-            "custom_model": 'my_rnn_model',
+            "custom_model": 'my_cnn_rnn_model',
         },
-        "log_level": 'INFO',
+        "log_level": 'WARN',
     }
 
     """Use Ray Tune to train an agent.
