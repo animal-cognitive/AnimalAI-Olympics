@@ -3,13 +3,15 @@ from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.models import ModelCatalog
 from ray.tune.logger import pretty_print
 
+from cache_model import *
 from config import get_cfg
 from custom_model import *
 
 # Register custom models so that we can give the ID to the policy trainer
-ModelCatalog.register_custom_model("my_fc_model", MyFCForwardModel)
+# ModelCatalog.register_custom_model("my_fc_model", MyFCForwardModel)
 ModelCatalog.register_custom_model("my_rnn_model", MyRNNModel)
 ModelCatalog.register_custom_model("my_convgru_model", MyConvGRUModel)  # NOTE: Only works with image observations.
+ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
 
 
 def train(cfg):
@@ -24,13 +26,13 @@ def train(cfg):
     # Transform our config to a Ray config
     ray_cfg = {
         "env": cfg["env_id"],
-        "num_gpus": 1,
+        "num_gpus": 0,
         "num_workers": 0,
         "framework": 'torch',
         "model": {
-            "custom_model": 'my_rnn_model',
+            "custom_model": 'my_cnn_rnn_model',
         },
-        "log_level": 'INFO',
+        "log_level": 'WARN',
     }
 
     """Use Ray Tune to train an agent.
@@ -98,6 +100,7 @@ def example_instrument(cfg):
         print('input features:', in_features.shape, 'previous state:', [s.shape for s in in_state])
         # Expect (1 x 1 x 256) coming out of LSTM. This is the DIR.
         print('DIR output:', out_features.shape, 'current state:', [s.shape for s in out_state])
+
     model.lstm.register_forward_hook(print_dir_shape)
 
     # Pass observations to our model
@@ -106,7 +109,7 @@ def example_instrument(cfg):
 
 def main():
     cfg = get_cfg()
-    example_instrument(cfg)
+    # example_instrument(cfg)
     if cfg["train"]:
         train(cfg)
 

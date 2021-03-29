@@ -1,4 +1,6 @@
-"""A custom RLLib model. It acts as a Torch module which takes observations and outputs actions and values."""
+"""
+Some custom RLLib models
+"""
 import functools
 import operator
 
@@ -67,19 +69,19 @@ class MyConvGRUModel(RecurrentNetwork, nn.Module):
         # Copy from RecurrentNetwork code
         # The default RecurrentNetwork flattens the observation first.
         # We want to preserve spatials.
-        inputs = input_dict["obs"].float()
-        inputs = inputs.unsqueeze(dim=1).float()  # Add channel dim
+        obs = input_dict["obs"].float()
+        obs = obs.unsqueeze(dim=1).float()  # Add channel dim
         if isinstance(seq_lens, np.ndarray):
             seq_lens = torch.Tensor(seq_lens).int()
-        max_seq_len = inputs.shape[0] // seq_lens.shape[0]
+        max_seq_len = obs.shape[0] // seq_lens.shape[0]
         self.time_major = self.model_config.get("_time_major", False)
-        inputs = add_time_dimension(
-            inputs,
+        obs = add_time_dimension(
+            obs,
             max_seq_len=max_seq_len,
             framework="torch",
             time_major=self.time_major,
         )
-        output, new_state = self.forward_rnn(inputs, state, seq_lens)
+        output, new_state = self.forward_rnn(obs, state, seq_lens)
         output = torch.reshape(output, [-1, self.num_outputs])
         return output, new_state
 
@@ -103,15 +105,13 @@ class MyConvGRUModel(RecurrentNetwork, nn.Module):
 
 class MyRNNModel(RecurrentNetwork, nn.Module):
 
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name,
-                 fc_size=64,
-                 lstm_state_size=256):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
         super().__init__(obs_space, action_space, num_outputs, model_config, name)
         nn.Module.__init__(self)
 
         self.obs_size = get_preprocessor(obs_space)(obs_space).size
-        self.fc_size = fc_size
-        self.lstm_state_size = lstm_state_size
+        self.fc_size = 64
+        self.lstm_state_size = 256
 
         # Build the Module from fc + LSTM + 2xfc (action + value outs).
         self.fc1 = nn.Linear(self.obs_size, self.fc_size)
@@ -156,12 +156,8 @@ class MyRNNModel(RecurrentNetwork, nn.Module):
         return action_out, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
 
-class MyFCForwardModel(TorchModelV2, nn.Module):
-    """PyTorch custom model.
-    It just forwards a fully connected net (and should act the same as the default for non-image observations).
-    Taken from example: https://github.com/ray-project/ray/blob/master/rllib/examples/models/custom_loss_model.py
-
-    See https://docs.ray.io/en/master/rllib-models.html#custom-pytorch-models for how it works and how to extend it.
+class MyCNNModel(TorchModelV2, nn.Module):
+    """PyTorch custom model which encodes the observation with a CNN before passing it to the policy/value network.
     """
 
     def __init__(self, obs_space, action_space, num_outputs, model_config, name, *args, **kwargs):
@@ -176,9 +172,29 @@ class MyFCForwardModel(TorchModelV2, nn.Module):
             model_config,
             name="fcnet")
 
+    def encode_observation(self, observation):
+        """
+        Encode a batch of observations.
+        Receives a 4d batch of observations, dimensions (B x C x W x H)
+        - B=Batch
+        - C=Channel
+        - W,H=Width,Height
+
+        Returns a batch of encoded observations, dimensions still (B x C x W x H)
+        Batch size should be the same
+        Output size (channels and spatials) are defined by the UNet
+        """
+
+        # TODO Hamad integrates UNet here.
+        # return self.unet(observation)
+
+        return observation  # TODO delete this once UNet is implemented
+
     @override(ModelV2)
     def forward(self, input_dict, state, seq_lens):
         """Delegate to our FCNet."""
+        obs = input_dict["obs"].float()
+        conv_out = self.encode_observation(obs)
         return self.fcnet(input_dict, state, seq_lens)
 
     @override(TorchModelV2)
