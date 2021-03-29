@@ -23,7 +23,7 @@ from ray.rllib.utils import override
 from ray.tune import register_env
 from torch import nn
 
-from cognitive.primitive_arena import RayAIIGym
+# from cognitive.primitive_arena import RayAIIGym
 
 
 class MyCNNRNNModel(RecurrentNetwork, nn.Module):

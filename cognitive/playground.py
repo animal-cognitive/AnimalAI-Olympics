@@ -4,6 +4,9 @@ from animalai_train.run_options_aai import RunOptionsAAI
 from animalai_train.run_training_aai import run_training_aai
 from mlagents.trainers.trainer_util import load_config
 
+from cognitive.primitive_arena import GymFactory, Occlusion
+import ray.rllib.agents.ppo as ppo
+
 
 def main():
     with open("examples/configurations/training_configurations/train_ml_agents_config_ppo.yaml") as f:
@@ -102,5 +105,34 @@ def play():
         environment.close()
 
 
+def what_actions():
+    env_config = ppo.DEFAULT_CONFIG.copy()
+    occ = Occlusion()
+    arena_config, settings = occ.generate_config()
+    env_config_ = {
+        "env": GymFactory(arena_config),
+        "num_gpus": 1,
+        "num_workers": 0,
+        "framework": 'torch',
+        "model": {
+            "custom_model": 'mm',
+        },
+        "log_level": 'INFO',
+    }
+
+    Env = GymFactory(arena_config)
+
+    env = Env(env_config)
+    obs = env.reset()
+    for i in range(1000):
+        obs, reward, done, info = env.step([0, 2])
+
+    # [0,0] is no action
+    # [1,0] is forward
+    # [2,0] is backward
+    # [0,1] is turning left
+    # [0,2] is turning right
+
+
 if __name__ == '__main__':
-    play()
+    what_actions()
