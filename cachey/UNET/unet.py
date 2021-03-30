@@ -17,15 +17,15 @@ class MultilayerConv(nn.Module):
 		if not mid_channels:
 			midchannels = out_channels
 		self.Multilayer_Conv = nn.Sequential(
-			nn.Conv2d(in_channels, mid_channel, kernel_size=3, padding=1),
-			nn.BatchNorm2d(mid_channels),
+			nn.Conv3d(in_channels, mid_channel, kernel_size=3, padding=1),
+			nn.BatchNorm3d(mid_channels),
 			nn.Relu(inplace=True),
-			nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1),
-			nn.BatchNorm2d(out_channels),
+			nn.Conv3d(mid_channels, out_channels, kernel_size=3, padding=1),
+			nn.BatchNorm3d(out_channels),
 			nn.Relu(inplace=True)
 			
 			)
-	def farward(self, x):
+	def forward(self, x):
 		return self.Multilayer_Conv(x)
 
 
@@ -36,12 +36,12 @@ class Down(nn.Module):
 	def __init__(self, in_channels, out_channels):
 		super().__init__()
 		self.maxpool_conv = nn.sequential(
-			nn.MaxPool2d(2),
+			nn.MaxPool3d(2),
 			MultilayerConv(in_channels,out_channels),
 		)
 
 
-	def farward(self, x):
+	def forward(self, x):
 		return self.maxpool_conv(x)
 
 
@@ -58,10 +58,10 @@ class up(nn.Module):
 			self.conv = MultilayerConv(in_channels, out_channels, in_channels//2)
 		else:
 			self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-			self.conv = DoubleConv(in_channels, out_channels)
+			self.conv = MultilayerConv(in_channels, out_channels)
 
 
-	def farward(self, x1, x2):
+	def forward(self, x1, x2):
 	
 		x1 = self.up(x1)
 
@@ -77,8 +77,8 @@ class up(nn.Module):
 class OutConv(nn.Module):
 	def __init__(self, in_channels, out_channels):
 		super(OutConv, self).__init__()
-		self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+		self.conv = nn.Conv3d(in_channels, out_channels, kernel_size=1)
 
 
-	def farward(self,x):
+	def forward(self,x):
 		return self.conv(x)
