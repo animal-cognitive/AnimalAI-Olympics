@@ -172,7 +172,7 @@ class MyCNNModel(TorchModelV2, nn.Module):
             num_outputs,
             model_config,
             name="fcnet")
-        
+        #unet model defined in UNET/unet_model.py
         self.unet = Unet(obs_space,num_outputs)
 
     def encode_observation(self,observation):
