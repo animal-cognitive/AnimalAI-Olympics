@@ -15,6 +15,7 @@ from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.policy.rnn_sequencing import add_time_dimension
 from ray.rllib.utils import override
 from torch import nn
+from UNET/unet_model import UNet
 
 
 class MyConvGRUModel(RecurrentNetwork, nn.Module):
