@@ -12,7 +12,7 @@ from .unet import *
 
 class UNet(nn.Module):
 	def __init__(self, n_channels, n_classes, bilinear = True, encode = True):
-		super(UNET, slef).__init__()
+		super(UNET, self).__init__()
 
 		self.n_channels = n_channels
 		self.n_classes = n_classes
@@ -27,7 +27,7 @@ class UNet(nn.Module):
 			self.down3 = Down(256, 512)
 			self.down4 = Down(512,256)
 			self.down5 = Down(256, 128)
-			self.out = OutConv(128,128)
+			self.out = OutConv(128,self.n_classes)
 		else:
 			self.down1 = Down(64, 128)
 			self.down1 = down(64, 128)
