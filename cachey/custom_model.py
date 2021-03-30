@@ -176,7 +176,7 @@ class MyCNNModel(TorchModelV2, nn.Module):
         self.unet = Unet(obs_space,num_outputs)
 
     def encode_observation(self,observation):
-        return self.unet.forward(observation)
+        return self.unet(observation)
 
     @override(ModelV2)
     def forward(self, input_dict, state, seq_lens):
