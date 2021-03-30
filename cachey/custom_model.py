@@ -171,24 +171,11 @@ class MyCNNModel(TorchModelV2, nn.Module):
             num_outputs,
             model_config,
             name="fcnet")
+        
+        self.unet = Unet(obs_space,num_outputs)
 
-    def encode_observation(self, observation):
-        """
-        Encode a batch of observations.
-        Receives a 4d batch of observations, dimensions (B x C x W x H)
-        - B=Batch
-        - C=Channel
-        - W,H=Width,Height
-
-        Returns a batch of encoded observations, dimensions still (B x C x W x H)
-        Batch size should be the same
-        Output size (channels and spatials) are defined by the UNet
-        """
-
-        # TODO Hamad integrates UNet here.
-        # return self.unet(observation)
-
-        return observation  # TODO delete this once UNet is implemented
+    def encode_observation(self,observation):
+        return self.unet.forward(observation)
 
     @override(ModelV2)
     def forward(self, input_dict, state, seq_lens):
