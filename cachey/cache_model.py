@@ -60,12 +60,12 @@ class MyCNNRNNModel(RecurrentNetwork, nn.Module):
         dummy_cnn_output = self._setup_cnn(in_channels, obs_space.shape)
         cnn_output_flat_size = reduce(operator.mul, dummy_cnn_output.shape[1:])
         self.linear = nn.Linear(cnn_output_flat_size, self.linear_size)
-        lstm_input_size = self.linear
+        lstm_input_size = self.linear_size
         n_logits = self.linear_size
 
         if self.use_convgru:
             dummy_convgru_output = self._setup_convgru(dummy_cnn_output.shape)
-            convgru_output_flat_size = reduce(operator.mul, dummy_convgru_output[2:])
+            convgru_output_flat_size = reduce(operator.mul, dummy_convgru_output.shape[2:])
             lstm_input_size = convgru_output_flat_size
             n_logits = convgru_output_flat_size
 
@@ -132,7 +132,7 @@ class MyCNNRNNModel(RecurrentNetwork, nn.Module):
         return dummy_output
 
     def get_gru_initial_state(self):
-        gru_h = self.convgru.get_init_states(1, False)
+        gru_h = self.convgru.get_init_states(1, self.linear.weight.is_cuda)
         gru_h = [h.squeeze(0) for h in gru_h]
         return gru_h
 
