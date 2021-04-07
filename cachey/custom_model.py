@@ -15,7 +15,7 @@ from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.policy.rnn_sequencing import add_time_dimension
 from ray.rllib.utils import override
 from torch import nn
-from UNET/unet_model import UNet
+from UNET import UNet
 
 
 class MyConvGRUModel(RecurrentNetwork, nn.Module):
@@ -173,10 +173,10 @@ class MyCNNModel(TorchModelV2, nn.Module):
             model_config,
             name="fcnet")
         #unet model defined in UNET/unet_model.py
-        self.unet = Unet(obs_space,num_outputs)
+        self.unet = UNet(obs_space,num_outputs)
 
     def encode_observation(self,observation):
-        return self.unet.forward(observation)
+        return self.unet(observation)
 
     @override(ModelV2)
     def forward(self, input_dict, state, seq_lens):
@@ -188,3 +188,4 @@ class MyCNNModel(TorchModelV2, nn.Module):
     @override(TorchModelV2)
     def value_function(self):
         return self.fcnet.value_function()
+~                                         
