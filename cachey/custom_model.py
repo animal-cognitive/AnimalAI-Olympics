@@ -15,6 +15,7 @@ from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.policy.rnn_sequencing import add_time_dimension
 from ray.rllib.utils import override
 from torch import nn
+from UNET import UNet
 
 
 class MyConvGRUModel(RecurrentNetwork, nn.Module):
@@ -171,24 +172,11 @@ class MyCNNModel(TorchModelV2, nn.Module):
             num_outputs,
             model_config,
             name="fcnet")
+        #unet model defined in UNET/unet_model.py
+        self.unet = UNet(obs_space,num_outputs)
 
-    def encode_observation(self, observation):
-        """
-        Encode a batch of observations.
-        Receives a 4d batch of observations, dimensions (B x C x W x H)
-        - B=Batch
-        - C=Channel
-        - W,H=Width,Height
-
-        Returns a batch of encoded observations, dimensions still (B x C x W x H)
-        Batch size should be the same
-        Output size (channels and spatials) are defined by the UNet
-        """
-
-        # TODO Hamad integrates UNet here.
-        # return self.unet(observation)
-
-        return observation  # TODO delete this once UNet is implemented
+    def encode_observation(self,observation):
+        return self.unet(observation)
 
     @override(ModelV2)
     def forward(self, input_dict, state, seq_lens):
@@ -200,3 +188,4 @@ class MyCNNModel(TorchModelV2, nn.Module):
     @override(TorchModelV2)
     def value_function(self):
         return self.fcnet.value_function()
+~                                         
