@@ -25,7 +25,7 @@ def get_cfg():
 
     args_dict = vars(args)
 
-    with open('config.json') as f:
+    with open('cachey/config.json') as f:
         config_json = json.load(f)
         json_dict = config_json[args_dict["name"]]
 

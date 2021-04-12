@@ -4,22 +4,32 @@ from pathlib import Path
 
 import ray
 import ray.rllib.agents.a3c as a3c
+import torch
 import yaml
 from animalai.envs.arena_config import ArenaConfig
 from animalai.envs.environment import AnimalAIEnvironment
 from animalai.envs.gym.environment import AnimalAIGym
 from mlagents_envs.exception import UnityCommunicationException
 from ray.rllib.agents import ppo
+from ray.rllib.models.preprocessors import get_preprocessor
 
-from cognitive.dir import DIRWrapper, no_action, rotate_180, remove_goal, DIRDataset
+from cognitive.dir import DIRWrapper, rotate_180, remove_goal, DIRDataset
+import numpy as np
 
 
-class RayAIIGym(AnimalAIGym):
-    def __init__(self, env_config, arena_config):
-        super(RayAIIGym, self).__init__(worker_id=env_config.worker_index,
-                                        environment_filename='examples/env/AnimalAI',
-                                        arenas_configurations=arena_config)
 
+def GymFactory(arena_config, worker_id=1234):
+    class RayAAIGym(AnimalAIGym):
+        def __init__(self, env_config):
+            try:
+                super(RayAAIGym, self).__init__(worker_id=env_config.worker_index,
+                                                environment_filename='examples/env/AnimalAI',
+                                                arenas_configurations=arena_config)
+            except AttributeError:
+                super(RayAAIGym, self).__init__(worker_id=worker_id,
+                                                environment_filename='examples/env/AnimalAI',
+                                                arenas_configurations=arena_config)
+    return RayAAIGym
 
 class ArenaManager:
     """
@@ -56,32 +66,32 @@ class ArenaManager:
     def modify_yaml(self, *args, **kwargs):
         pass
 
-    def collect_dir(self, agent, env_config):
+    def collect_dir(self, agent, arena_config, settings, env_config, initial_steps=10):
         pass
 
-    def interact(self):
-        # TODO get the agent policy and weights here
-        # inject interactions here
-        ray.init(include_dashboard=False)
-        config = ppo.DEFAULT_CONFIG.copy()
-        # checkpoint_path = checkpoints[0][0]
-        agent = a3c.A3CTrainer(config=config)
-        # agent.restore('D:\\Git\\AnimalAI-Olympics\\log\\PPO\\PPO_CartPole-v0_314b5_00000_0_lr=0.0001_2021-03-19_15-32-15\\checkpoint_000005\\checkpoint-5')
-        agent.restore(
-            'D:\\Git\\AnimalAI-Olympics\\log\\A3C\\A3C_CartPole-v0_b1b96_00000_0_lr=0.0001_2021-03-19_15-50-10\\checkpoint_000040\\checkpoint-40')
-        arena_config, _ = self.generate_config()
-        env = RayAIIGym(config, arena_config)
-        obs = env.reset()
-        sum_reward = 0
-        for i in range(1000):
-            action = agent.compute_action(obs)
-            obs, reward, done, info = env.step(action)
-            sum_reward += reward
-            if done:
-                print(agent.get_policy().model)
-                print(agent.get_policy())
-                print(agent.get_policy().model.base_model.summary())
-                break
+    # def interact(self):
+    #     # TODO get the agent policy and weights here
+    #     # inject interactions here
+    #     ray.init(include_dashboard=False)
+    #     config = ppo.DEFAULT_CONFIG.copy()
+    #     # checkpoint_path = checkpoints[0][0]
+    #     agent = a3c.A3CTrainer(config=config)
+    #     # agent.restore('D:\\Git\\AnimalAI-Olympics\\log\\PPO\\PPO_CartPole-v0_314b5_00000_0_lr=0.0001_2021-03-19_15-32-15\\checkpoint_000005\\checkpoint-5')
+    #     agent.restore(
+    #         'D:\\Git\\AnimalAI-Olympics\\log\\A3C\\A3C_CartPole-v0_b1b96_00000_0_lr=0.0001_2021-03-19_15-50-10\\checkpoint_000040\\checkpoint-40')
+    #     arena_config, _ = self.generate_config()
+    #     env = RayAIIGym(config, arena_config)
+    #     obs = env.reset()
+    #     sum_reward = 0
+    #     for i in range(1000):
+    #         action = agent.compute_action(obs)
+    #         obs, reward, done, info = env.step(action)
+    #         sum_reward += reward
+    #         if done:
+    #             print(agent.get_policy().model)
+    #             print(agent.get_policy())
+    #             print(agent.get_policy().model.base_model.summary())
+    #             break
 
     def generate_dir_dataset(self, agent, env_config, size=1000):
         dir, labels = [], []
@@ -145,7 +155,7 @@ class BeforeOrBehind(ArenaManager):
         agent.rotations[0] = agent_rotation
         return arena_config
 
-    def collect_dir(self, agent, env_config, initial_steps=10):
+    def collect_dir(self, trainer, arena_config, settings, env_config, initial_steps=10):
         """
         Procedure:
         1) Start agent
@@ -157,16 +167,22 @@ class BeforeOrBehind(ArenaManager):
         :return:
         (DIR, is_before)
         """
-        arena_config, inter = self.generate_config()
-        env = RayAIIGym(env_config, arena_config)
+        Env = GymFactory(arena_config)
+        env = Env(env_config)
         obs = env.reset()
 
-        dir = DIRWrapper(agent)
-
+        dir = DIRWrapper(trainer.get_policy().model)
+        
+        state = trainer.get_policy().model.get_initial_state()
+        state = [s.unsqueeze(0) for s in state]
         for i in range(initial_steps):
-            action = agent.compute_action(obs)
-            obs, reward, done, info = env.step(action)
-        return [dir.get_dir()], [inter["before"]]
+            action = trainer.get_policy().compute_actions(obs_batch=np.expand_dims(obs, axis=0),
+                                                          state_batches=state)
+            state = dir.dir[1]
+            state = [s.squeeze(0) for s in state]
+            obs, reward, done, info = env.step(action[0])
+        env.close()
+        return [dir.get_dir()], [settings["before"]]
 
 
 class Occlusion(ArenaManager):
@@ -176,6 +192,10 @@ class Occlusion(ArenaManager):
         self.template_arena_config = ArenaConfig(self.template_path)
 
     def generate_config(self):
+        """
+
+        :return: arena_config, settings
+        """
         agent_z = randdouble(1, 7)
 
         if random.random() < 0.5:
@@ -212,7 +232,7 @@ class Occlusion(ArenaManager):
         agent.positions[0].z = agent_z
         return arena_config
 
-    def collect_dir(self, agent, env_config, initial_steps=10):
+    def collect_dir(self, trainer, arena_config, settings, env_config, initial_steps=10):
         """
         Procedure:
         1) Start agent
@@ -221,30 +241,41 @@ class Occlusion(ArenaManager):
         4) Collect DIR at different time steps
         5) Label determined by occlusion
 
-        :param agent:
+        :param trainer:
         :return:
         (DIR, is_occluded)
         """
-        arena_config, inter = self.generate_config()
-        env = RayAIIGym(env_config, arena_config)
+        Env = GymFactory(arena_config)
+        env = Env(env_config)
         obs = env.reset()
 
-        dir = DIRWrapper(agent)
+        dir = DIRWrapper(trainer.get_policy().model)
 
         # sum_reward = 0
+        state = trainer.get_policy().model.get_initial_state()
+        state = [s.unsqueeze(0) for s in state]
         for i in range(initial_steps):
-            action = agent.compute_action(obs)
-            obs, reward, done, info = env.step(action)
+            # trainer.compute_action()
+            # prep = get_preprocessor(env.observation_space)(env.observation_space)
+            # obs = torch.stack([torch.from_numpy(prep.transform(env.observation_space.sample())) for _ in range(100)],
+            #                   dim=0)
+            action = trainer.get_policy().compute_actions(obs_batch=np.expand_dims(obs, axis=0),
+                                                          state_batches=state)
+            state = dir.dir[1]
+            state = [s.squeeze(0) for s in state]
+
+            obs, reward, done, info = env.step(action[0])
             # assert: the agent can see the wall and the ball
 
         visible_dir = dir.get_dir()
 
         for i in range(50):
-            action = no_action()
+            action = [0,0]
             obs, reward, done, info = env.step(action)
             # assert: the ball is behind the wall
 
         occluded_dir = dir.get_dir()
+        env.close()
         return [visible_dir, occluded_dir], [False, True]
 
 
@@ -285,7 +316,7 @@ class Rotation(ArenaManager):
         agent.positions[0].x = agent_x
         return arena_config
 
-    def collect_dir(self, agent, env_config, initial_steps=1000):
+    def collect_dir(self, trainer, arena_config, settings, env_config, initial_steps=1000):
         """
         Procedure:
         1) Start agent, record action
@@ -300,48 +331,72 @@ class Rotation(ArenaManager):
         :return:
         (DIR, is_removed)
         """
-        arena_config, inter = self.generate_config()
-        env = RayAIIGym(env_config, arena_config)
+        Env = GymFactory(arena_config)
+        env = Env(env_config)
         obs = env.reset()
 
-        dir = DIRWrapper(agent)
+        dir = DIRWrapper(trainer.get_policy().model)
         actions = []
-
+        states = []
+        state = trainer.get_policy().model.get_initial_state()
+        state = [s.unsqueeze(0) for s in state]
+        states.append(state)
+        done=False
         for i in range(initial_steps):
-            action = agent.compute_action(obs)
-            actions.append(action)
-            obs, reward, done, info = env.step(action)
+            action = trainer.get_policy().compute_actions(obs_batch=np.expand_dims(obs, axis=0),
+                                                          state_batches=state)
+            state = dir.dir[1]
+            state = [s.squeeze(0) for s in state]
+
+            states.append(state)
+            actions.append(action[0])
+            obs, reward, done, info = env.step(action[0])
             if done:
-                print(agent.get_policy().model)
-                print(agent.get_policy())
-                print(agent.get_policy().model.base_model.summary())
                 break
+        if not done:
+            raise RuntimeError("The agent failed to find the goal")
 
         # visible
         obs = env.reset()
-        for ac in actions[:-1]:
-            action = agent.compute_action(obs)
+        for idx, ac in enumerate(actions[:-1]):
+            state = states[idx]
+            action = trainer.get_policy().compute_actions(obs_batch=np.expand_dims(obs, axis=0),
+                                                          state_batches=state)
             obs, reward, done, info = env.step(ac)
-
+        
+        state = states[-1]
         for ac in rotate_180():
-            action = agent.compute_action(obs)
+            action = trainer.get_policy().compute_actions(obs_batch=np.expand_dims(obs, axis=0),
+                                                          state_batches=state)
+            state = dir.dir[1]
+            state = [s.squeeze(0) for s in state]
             obs, reward, done, info = env.step(ac)
 
         visible_dir = dir.get_dir()
+        env.close()
 
+        # invisible
         removed_ac = remove_goal(arena_config)
-        env = RayAIIGym(env_config, removed_ac)
+        Env = GymFactory(removed_ac)
+        env = Env(env_config)
         obs = env.reset()
 
-        for ac in actions[:-1]:
-            action = agent.compute_action(obs)
+        for idx, ac in enumerate(actions[:-1]):
+            state = states[idx]
+            action = trainer.get_policy().compute_actions(obs_batch=np.expand_dims(obs, axis=0),
+                                                          state_batches=state)
             obs, reward, done, info = env.step(ac)
 
+        state = states[-1]
         for ac in rotate_180():
-            action = agent.compute_action(obs)
+            action = trainer.get_policy().compute_actions(obs_batch=np.expand_dims(obs, axis=0),
+                                                          state_batches=state)
+            state = dir.dir[1]
+            state = [s.squeeze(0) for s in state]
             obs, reward, done, info = env.step(ac)
 
         removed_dir = dir.get_dir()
+        env.close()
 
         return [visible_dir, removed_dir], [False, True]
 
