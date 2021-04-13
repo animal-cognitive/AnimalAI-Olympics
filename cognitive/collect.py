@@ -62,7 +62,22 @@ class DIRCollection:
     def run(self, mode, agent):
         bob = Rotation()
         arena_config, con = bob.generate_config()
+def collect_all(ds_size=2):
+    checkpoint = str(PROJECT_ROOT / 'log/PPO_unity_env_2021-04-09_02-16-38lwq8v0v4/checkpoint_3500/checkpoint-3500')
+    sd = unpack_checkpoint(checkpoint)
+    collect(sd, Arena=BeforeOrBehind, ds_size=ds_size)
+    collect(sd, Arena=Occlusion, ds_size=ds_size)
+    collect(sd, Arena=Rotation, ds_size=ds_size)
 
+
+def unpack_checkpoint(checkpoint):
+    checkpoint = pickle.load(open(checkpoint, "rb"))
+    objs = pickle.loads(checkpoint["worker"])
+    sd = objs["state"]["default_policy"]
+    for k, v in sd.items():
+        if isinstance(v, np.ndarray):
+            sd[k] = torch.from_numpy(v)
+    return sd
 
 if __name__ == '__main__':
     access_agent()
