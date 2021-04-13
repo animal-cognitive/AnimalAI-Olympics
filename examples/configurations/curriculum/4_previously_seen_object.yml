@@ -2,7 +2,7 @@
 arenas:
   -1: !Arena
     pass_mark: 0
-    t: 200
+    t: 500
     blackouts: [2,10]
     items:
     - !Item

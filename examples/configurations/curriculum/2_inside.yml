@@ -1,7 +1,7 @@
 !ArenaConfig
 arenas:
   0: !Arena
-    t: 500
+    t: 5000
     items:
     - !Item
       name: GoodGoal
@@ -16,3 +16,8 @@ arenas:
       rotations: [0]
       sizes:
       - !Vector3 {x: 5, y: 15, z: 17.5}
+    - !Item
+      name: Agent
+      positions:
+      - !Vector3 {x: 25, y: 0, z: 25}
+      rotations: [270]

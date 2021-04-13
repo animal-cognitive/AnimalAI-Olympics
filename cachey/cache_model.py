@@ -12,6 +12,7 @@ import pytest
 import ray
 import torch
 import torch.nn.functional as F
+# import cognitive
 from animalai.envs.arena_config import ArenaConfig
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.env.atari_wrappers import wrap_deepmind
@@ -23,7 +24,7 @@ from ray.rllib.utils import override
 from ray.tune import register_env
 from torch import nn
 
-from cognitive.primitive_arena import RayAIIGym
+# from cognitive.primitive_arena import RayAIIGym
 
 
 class MyCNNRNNModel(RecurrentNetwork, nn.Module):
@@ -195,17 +196,17 @@ def test_sanity(model_config):
     env.close()
 
 
-def test_trainonebatch():
-    """Test hooking into an RLLib trainer."""
-    ray.shutdown()
-    ray.init(include_dashboard=False)
-    register_env("my_env", lambda c: RayAIIGym(c, ArenaConfig('examples/configurations/curriculum/0.yml')))
-    ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
-    trainer = PPOTrainer(env="my_env", config={
-        "model": {
-            "custom_model": 'my_cnn_rnn_model',
-            "custom_model_config": {},
-        },
-        "framework": 'torch',
-    })
-    trainer.train()
+# def test_trainonebatch():
+#     """Test hooking into an RLLib trainer."""
+#     ray.shutdown()
+#     ray.init(include_dashboard=False)
+#     register_env("my_env", lambda c: RayAIIGym(c, ArenaConfig('examples/configurations/curriculum/0.yml')))
+#     ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
+#     trainer = PPOTrainer(env="my_env", config={
+#         "model": {
+#             "custom_model": 'my_cnn_rnn_model',
+#             "custom_model_config": {},
+#         },
+#         "framework": 'torch',
+#     })
+#     trainer.train()

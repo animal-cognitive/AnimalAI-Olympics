@@ -17,7 +17,7 @@ from cognitive.dir import DIRWrapper, no_action, rotate_180, remove_goal, DIRDat
 class RayAIIGym(AnimalAIGym):
     def __init__(self, env_config, arena_config):
         super(RayAIIGym, self).__init__(worker_id=env_config.worker_index,
-                                        environment_filename='examples/env/AnimalAI',
+                                        environment_filename='../examples/env/AnimalAI',
                                         arenas_configurations=arena_config)
 
 
