@@ -2,7 +2,17 @@ import gym
 import ray
 import ray.rllib.agents.a3c as a3c
 from ray import tune
+
+from cachey.cache_model import MyCNNRNNModel
 from cognitive.primitive_arena import *
+
+import ray
+import ray.rllib.agents.a3c as a3c
+
+from cachey.config import get_cfg
+from cognitive.primitive_arena import Occlusion
+from ray.rllib.models import ModelCatalog
+from cachey.custom_model import *
 
 
 def train_agent():
@@ -55,14 +65,59 @@ def access_agent():
             print(agent.get_policy().model.base_model.summary())
             break
 
-class DIRCollection:
-    def __init__(self):
-        self.modes = [BeforeOrBehind, Occlusion, Rotation]
 
-    def run(self, mode, agent):
-        bob = Rotation()
-        arena_config, con = bob.generate_config()
+# class DIRCollection:
+#     def __init__(self):
+#         self.modes = [BeforeOrBehind, Occlusion, Rotation]
+#
+#     def run(self, mode, agent):
+#         bob = Rotation()
+#         arena_config, con = bob.generate_config()
+
+def register_models():
+    # ModelCatalog.register_custom_model("my_fc_model", MyCNNRNNModel)
+    ModelCatalog.register_custom_model("my_rnn_model", MyRNNModel)
+    ModelCatalog.register_custom_model("my_convgru_model", MyConvGRUModel)  # NOTE: Only works with image observations.
+    ModelCatalog.register_custom_model("mm", MyCNNRNNModel)  # NOTE: Only works with image observations.
+
+
+def collect(Arena: ArenaManager = BeforeOrBehind, ds_size =1000):
+    register_models()
+    ray.init(include_dashboard=False)
+    env_config = ppo.DEFAULT_CONFIG.copy()
+    arena = Arena()
+    arena_config, settings = arena.generate_config()
+    env_config_ = {
+        "env": GymFactory(arena_config),
+        "num_gpus": 1,
+        "num_workers": 0,
+        "framework": 'torch',
+        "model": {
+            "custom_model": 'mm',
+        },
+        "log_level": 'INFO',
+    }
+    env_config.update(env_config_)
+    trainer = ppo.PPOTrainer(config=env_config)
+    # trainer.restore()
+
+    input, target = [], []
+    for i in range(ds_size):
+        a, b = arena.collect_dir(trainer, arena_config, settings, env_config)
+        input += a
+        target += b
+    dataset = DIRDataset(input, target)
+    trainer.cleanup()
+    ray.shutdown()
+    return dataset
+
+def collect_all(ds_size = 2):
+    collect(Arena=BeforeOrBehind, ds_size=ds_size)
+    collect(Arena=Occlusion, ds_size=ds_size)
+    collect(Arena=Rotation, ds_size=ds_size)
+
 
 
 if __name__ == '__main__':
-    access_agent()
+    ds_size=2
+    collect_all()
