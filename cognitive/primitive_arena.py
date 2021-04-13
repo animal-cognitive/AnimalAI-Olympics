@@ -16,7 +16,11 @@ from ray.rllib.models.preprocessors import get_preprocessor
 from cognitive.dir import DIRWrapper, rotate_180, remove_goal, DIRDataset
 import numpy as np
 
-
+# class RayAIIGym(AnimalAIGym):
+#     def __init__(self, env_config, arena_config):
+#         super(RayAIIGym, self).__init__(worker_id=env_config.worker_index,
+#                                         environment_filename='../examples/env/AnimalAI',
+#                                         arenas_configurations=arena_config)
 
 def GymFactory(arena_config, worker_id=1234):
     class RayAAIGym(AnimalAIGym):
