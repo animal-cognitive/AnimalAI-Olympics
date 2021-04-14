@@ -4,6 +4,7 @@ import ray.rllib.agents.a3c as a3c
 from ray import tune
 
 from cachey.cache_model import MyCNNRNNModel
+from cachey.load_trained_model import load_trainer
 from cognitive.primitive_arena import *
 
 import ray
@@ -81,9 +82,9 @@ def register_models():
     ModelCatalog.register_custom_model("mm", MyCNNRNNModel)  # NOTE: Only works with image observations.
 
 
-def collect(Arena: ArenaManager = BeforeOrBehind, ds_size =1000):
+def collect(Arena: ArenaManager = BeforeOrBehind, ds_size=1000):
     register_models()
-    ray.init(include_dashboard=False)
+    # ray.init(include_dashboard=False)
     env_config = ppo.DEFAULT_CONFIG.copy()
     arena = Arena()
     arena_config, settings = arena.generate_config()
@@ -108,16 +109,42 @@ def collect(Arena: ArenaManager = BeforeOrBehind, ds_size =1000):
         target += b
     dataset = DIRDataset(input, target)
     trainer.cleanup()
-    ray.shutdown()
+    # ray.shutdown()
     return dataset
 
-def collect_all(ds_size = 2):
-    collect(Arena=BeforeOrBehind, ds_size=ds_size)
-    collect(Arena=Occlusion, ds_size=ds_size)
-    collect(Arena=Rotation, ds_size=ds_size)
+
+def collect_trainer(trainer, Arena: ArenaManager = BeforeOrBehind, num_envs=10, ds_size_per_env=1000):
+    arena = Arena()
+    arena_config, settings = arena.generate_config()
+    input, target = [], []
+    # None
+    # env = trainer.workers.local_worker().env
+    for i in range(num_envs):
+        a, b = arena.collect_dir(trainer, ds_size_per_env, arena_config, settings, trainer.config)
+        input += a
+        target += b
+    dataset = DIRDataset(input, target)
+    trainer.cleanup()
+    # ray.shutdown()
+    return dataset
 
 
+#
+# def collect_all(ds_size=2):
+#     collect(Arena=BeforeOrBehind, ds_size=ds_size)
+#     collect(Arena=Occlusion, ds_size=ds_size)
+#     collect(Arena=Rotation, ds_size=ds_size)
+#
 
 if __name__ == '__main__':
-    ds_size=2
-    collect_all()
+    ds_size = 2
+    ray.init()
+    trainer = load_trainer()
+    Arenas = [BeforeOrBehind, Occlusion, Rotation]
+    # Arenas = [Rotation]
+    base_port = 1000
+    num_envs = 10
+    ds_size_per_env = 10
+    for Arena in Arenas:
+        collect_trainer(trainer, Arena, num_envs=num_envs, ds_size_per_env=ds_size_per_env)
+        base_port += num_envs

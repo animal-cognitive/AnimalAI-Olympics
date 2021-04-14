@@ -55,7 +55,7 @@ class UnityEnvWrapper(gym.Env):
 conf = {
     "num_workers": 0,
     "env_config": {
-        "unity_worker_id": 700,
+        "unity_worker_id": 702,
         "arena_to_train": 'examples/configurations/curriculum/0.yml',
         "base_port": 5005
     },

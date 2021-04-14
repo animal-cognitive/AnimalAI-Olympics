@@ -14,8 +14,8 @@ def load_trainer():
     from ray.rllib.models import ModelCatalog
     from ray.tune.logger import pretty_print
 
-    from cache_model import MyCNNRNNModel
-    from config import get_cfg
+    from cachey.cache_model import MyCNNRNNModel
+    # from config import get_cfg
 
     # from custom_model import *
 
@@ -28,6 +28,7 @@ def load_trainer():
             self.vector_index = env_config.vector_index
             self.worker_index = env_config.worker_index
             self.worker_id = env_config["unity_worker_id"] + env_config.worker_index
+            print("Opened")
             self.env = AnimalAIGym(
                 environment_filename="examples/env/AnimalAI",
                 worker_id=self.worker_id,
@@ -52,9 +53,9 @@ def load_trainer():
     conf = {
         "num_workers": 0,
         "env_config": {
-            "unity_worker_id": 700,
+            "unity_worker_id": 483,
             "arena_to_train": 'examples/configurations/curriculum/0.yml',
-            "base_port": 5005
+            "base_port": 1234
         },
         "model": {
             "custom_model": 'my_cnn_rnn_model',
@@ -70,8 +71,8 @@ def load_trainer():
     # %%
 
     ## Setup and register environment
-    ray.shutdown()
-    ray.init(num_gpus=2)
+    # ray.shutdown()
+    # ray.init(num_gpus=2)
 
     ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
 
@@ -79,9 +80,13 @@ def load_trainer():
 
     # %%
 
-    conf["env_config"]["base_port"] = 5008
+    # conf["env_config"]["base_port"] = 5009
     trainer = PPOTrainer(config=conf, env="unity_env")
     PATH_TO_CHECKPOINT_FILE = 'log/PPO_unity_env_2021-04-09_02-16-38lwq8v0v4/checkpoint_3500/checkpoint-3500'
     # trainer.restore('/home/azibit/ray_results/PPO_unity_env_2021-04-08_16-48-575mk5ga4m/checkpoint_500/checkpoint-500')
     trainer.restore(PATH_TO_CHECKPOINT_FILE)
     return trainer
+
+if __name__ == '__main__':
+    tr = load_trainer()
+    print(tr)

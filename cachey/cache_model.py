@@ -13,7 +13,7 @@ import ray
 import torch
 import torch.nn.functional as F
 # import cognitive
-from animalai.envs.arena_config import ArenaConfig
+# from animalai.envs.arena_config import ArenaConfig
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.env.atari_wrappers import wrap_deepmind
 from ray.rllib.models import ModelV2, ModelCatalog
