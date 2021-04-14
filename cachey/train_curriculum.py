@@ -16,6 +16,8 @@ class UnityEnvWrapper(gym.Env):
         self.vector_index = env_config.vector_index
         self.worker_index = env_config.worker_index
         self.worker_id = env_config.worker_index
+        if "unity_worker_id" in env_config:
+            self.worker_id += env_config["unity_worker_id"]
         self.env = AnimalAIGym(
             environment_filename=str((content_root / "examples/env/AnimalAI").absolute()),
             worker_id=self.worker_id,
@@ -132,38 +134,84 @@ def test_train():
 
 
 def test_eval():
-    arena_name = '1-1-1.yml'
-    arena_configuration = content_root / 'competition_configurations' / arena_name
+    import pandas as pd
+    trained = True
+    df = pd.DataFrame()
     animalai_exe = content_root / "examples/env/AnimalAI"
-
+    arena_root = content_root / 'competition_configurations'
+    test_arena = str((arena_root / '1-1-1.yml').absolute())
+    conf["env_config"] = {
+        "arena_to_train": test_arena,
+    }
+    trainer = PPOTrainer(config=conf, env="unity_env")
+    if trained:
+        trainer.restore('C:\\Users\\benja\\ray_results\\arena2\\checkpoint_1144\\checkpoint-1144')
     # test env
     env = AnimalAIGym(
         environment_filename=str(animalai_exe.absolute()),
         worker_id=700,
         flatten_branched=True,
         uint8_visual=True,
-        arenas_configurations=ArenaConfig(str(arena_configuration.absolute()))
+        arenas_configurations=ArenaConfig(test_arena)
     )
+    try:
+        for i in [1, 2, 3, 4, 5, 6, 7]:
+            arena_name = f'1-{i}-1.yml'
+            arena_configuration = arena_root / arena_name
+            env._env.reset(ArenaConfig(str(arena_configuration.absolute())))
 
-    # Load trainer with test env too, although we won't be rolling out in it
-    conf["env_config"] = {
-        "arena_to_train": str(arena_configuration.absolute()),
-    }
-    trainer = PPOTrainer(config=conf, env="unity_env")
-    state = trainer.get_policy().model.get_initial_state()
+            # Load trainer with test env too, although we won't be rolling out in it
+            # conf["record_env"] = True
+            conf["env_config"] = {
+                "unity_worker_id": i * 10,
+                "arena_to_train": str(arena_configuration.absolute()),
+            }
+            state = trainer.get_policy().model.get_initial_state()
 
-    # _ = rollout(env, state, trainer, 5000) # rollout a few times to get a good recurrent state
-    episode_rewards = rollout(env, state, trainer, 6000)
+            # _ = rollout(env, state, trainer, 5000) # rollout a few times to get a good recurrent state
+            # episode_rewards = rollout(env, state, trainer, 6000)
+            episode_rewards = rollout_eps(env, state, trainer, 100)
 
-    print('Episodes ran:', len(episode_rewards), 'Mean episodic reward:', np.mean(episode_rewards))
-    j2 = [i for i in episode_rewards if i >= 0]
-    print("Episodes with success: ", len(j2))
+            # env.close()
+            # trainer.cleanup()
+            results = {
+                "iteration": i,
+                "arena": str(arena_configuration),
+                "trained": trained,
+                "episodes_ran": len(episode_rewards),
+                "mean_eps_rew": np.mean(episode_rewards),
+                "std_eps_rew": np.std(episode_rewards),
+                "eps_success": len([j for j in episode_rewards if j >= 0])
+            }
+            df = df.append(results, ignore_index=True)
+            for k, v in results.items():
+                print(k + ':', v)
+    finally:
+        print(df)
+        df.to_csv(str((content_root / "results.csv").absolute()))
 
 
 def rollout(env, state, trainer, timesteps_to_run):
     timesteps_passed = 0
     episode_rewards = []
     while timesteps_passed < timesteps_to_run:
+        obs = env.reset()
+        episode_reward = 0
+        done = False
+        while not done:
+            action = trainer.compute_action(obs, state)
+            action, state = action[0], action[1]
+            obs, reward, done, info = env.step(action)
+            episode_reward += reward
+            timesteps_passed += 1
+        episode_rewards.append(episode_reward)
+    return episode_rewards
+
+
+def rollout_eps(env, state, trainer, eps_to_run):
+    timesteps_passed = 0
+    episode_rewards = []
+    while len(episode_rewards) < eps_to_run:
         obs = env.reset()
         episode_reward = 0
         done = False
