@@ -154,9 +154,26 @@ def test_eval():
         uint8_visual=True,
         arenas_configurations=ArenaConfig(test_arena)
     )
+
+    env_sets = {
+        "idris": ['1-30-3.yml', '2-8-3.yml'],
+        "multiple_food": ['1-18-1.yml', '1-18-2.yml', '1-18-3.yml', '1-19-1.yml', '1-19-2.yml', '1-19-3.yml',
+                          '4-30-1.yml', '4-30-2.yml', '4-30-3.yml'],
+        "basic_food_obstacles": ['3-1-1.yml', '3-1-3.yml', '3-1-2.yml', '3-3-2.yml', '3-2-1.yml', '3-2-2.yml',
+                                 '3-2-3.yml',
+                                 '3-3-1.yml', '3-3-3.yml'],
+        "basic_food": ['1-4-1.yml', '1-4-2.yml', '1-4-3.yml', '1-5-1.yml', '1-5-2.yml', '1-5-3.yml'],
+        "exploration": ['1-12-1.yml', '1-16-1.yml', '1-12-2.yml', '1-12-3.yml', '1-13-1.yml', '1-13-2.yml',
+                        '1-13-3.yml',
+                        '1-14-1.yml', '1-14-2.yml', '1-14-3.yml', '1-15-1.yml', '1-15-2.yml', '1-15-3.yml',
+                        '1-16-2.yml',
+                        '1-16-3.yml', '1-17-1.yml', '1-17-2.yml', '1-17-3.yml'],
+    }
+
+    my_selection = 'basic_food'
+
     try:
-        for i in [1, 2, 3, 4, 5, 6, 7]:
-            arena_name = f'1-{i}-1.yml'
+        for i, arena_name in enumerate(env_sets[my_selection]):
             arena_configuration = arena_root / arena_name
             env._env.reset(ArenaConfig(str(arena_configuration.absolute())))
 
@@ -168,14 +185,12 @@ def test_eval():
             }
             state = trainer.get_policy().model.get_initial_state()
 
-            # _ = rollout(env, state, trainer, 5000) # rollout a few times to get a good recurrent state
-            # episode_rewards = rollout(env, state, trainer, 6000)
-            episode_rewards = rollout_eps(env, state, trainer, 100)
+            # _, state = rollout(env, state, trainer, 1000)  # rollout some steps to get a good recurrent state
+            episode_rewards = rollout_eps(env, state, trainer, 10)
 
             # env.close()
             # trainer.cleanup()
             results = {
-                "iteration": i,
                 "arena": str(arena_configuration),
                 "trained": trained,
                 "episodes_ran": len(episode_rewards),
@@ -188,7 +203,7 @@ def test_eval():
                 print(k + ':', v)
     finally:
         print(df)
-        df.to_csv(str((content_root / "results.csv").absolute()))
+        df.to_csv(str((content_root / f"results_{my_selection}.csv").absolute()))
 
 
 def rollout(env, state, trainer, timesteps_to_run):
@@ -205,7 +220,7 @@ def rollout(env, state, trainer, timesteps_to_run):
             episode_reward += reward
             timesteps_passed += 1
         episode_rewards.append(episode_reward)
-    return episode_rewards
+    return episode_rewards, state
 
 
 def rollout_eps(env, state, trainer, eps_to_run):
