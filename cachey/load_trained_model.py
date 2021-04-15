@@ -1,3 +1,8 @@
+from mlagents_envs.exception import UnityWorkerInUseException, UnityTimeOutException
+
+from cognitive.primitive_arena import GymFactory
+
+
 def load_trainer():
     ## Import All Needed Libraries
 
@@ -18,33 +23,13 @@ def load_trainer():
     # from config import get_cfg
 
     # from custom_model import *
-
     # %%
 
     ## Reuse Wrapper for AnimalAI Environment
-
-    class UnityEnvWrapper(gym.Env):
-        def __init__(self, env_config):
-            self.vector_index = env_config.vector_index
-            self.worker_index = env_config.worker_index
-            self.worker_id = env_config["unity_worker_id"] + env_config.worker_index
-            print("Opened")
-            self.env = AnimalAIGym(
-                environment_filename="examples/env/AnimalAI",
-                worker_id=self.worker_id,
-                flatten_branched=True,
-                uint8_visual=True,
-                arenas_configurations=ArenaConfig(env_config['arena_to_train'])
-            )
-            self.env.base_port = env_config['base_port']
-            self.action_space = self.env.action_space
-            self.observation_space = self.env.observation_space
-
-        def reset(self):
-            return self.env.reset()
-
-        def step(self, action):
-            return self.env.step(action)
+    def env_factory(env_config):
+        arena_config = ArenaConfig(env_config['arena_to_train'])
+        GymClass = GymFactory(arena_config)
+        return GymClass(env_config)
 
     # %%
 
@@ -52,6 +37,7 @@ def load_trainer():
 
     conf = {
         "num_workers": 0,
+        "num_envs_per_worker": 1,
         "env_config": {
             "unity_worker_id": 483,
             "arena_to_train": 'examples/configurations/curriculum/0.yml',
@@ -62,7 +48,6 @@ def load_trainer():
             "custom_model_config": {},
         },
         "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", "1")),
-        "num_workers": 1,  # parallelism
         "framework": "torch",
         "train_batch_size": 500
     }
@@ -76,7 +61,7 @@ def load_trainer():
 
     ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
 
-    register_env("unity_env", lambda config: UnityEnvWrapper(config))
+    register_env("unity_env", env_factory)
 
     # %%
 

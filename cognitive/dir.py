@@ -28,11 +28,10 @@ class DIRWrapper:
 
 def rotate_180():
     # env._flattener.action_lookup
-    # todo test this
     if random() > 0.5:
-        return [1] * 10
+        return [4] * 20
     else:
-        return [3] * 10
+        return [5] * 20
 
 
 def remove_goal(arena_config) -> ArenaConfig:

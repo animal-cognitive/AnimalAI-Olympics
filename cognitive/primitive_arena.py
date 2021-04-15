@@ -6,10 +6,12 @@ import ray
 import ray.rllib.agents.a3c as a3c
 import torch
 import yaml
+from gym_unity.envs import UnityGymException
+
 from animalai.envs.arena_config import ArenaConfig
 from animalai.envs.environment import AnimalAIEnvironment
 from animalai.envs.gym.environment import AnimalAIGym
-from mlagents_envs.exception import UnityCommunicationException, UnityTimeOutException
+from mlagents_envs.exception import UnityCommunicationException, UnityTimeOutException, UnityWorkerInUseException
 from ray.rllib.agents import ppo
 from ray.rllib.models.preprocessors import get_preprocessor
 from tqdm import tqdm
@@ -23,25 +25,32 @@ import numpy as np
 #         super(RayAIIGym, self).__init__(worker_id=env_config.worker_index,
 #                                         environment_filename='../examples/env/AnimalAI',
 #                                         arenas_configurations=arena_config)
+# global init
+# init = 1000
+
 
 def GymFactory(arena_config, worker_id=None):
     class RayAAIGym(AnimalAIGym):
         def __init__(self, env_config):
             print("Opened")
             if worker_id is not None:
-                super(RayAAIGym, self).__init__(worker_id=worker_id,
-                                                environment_filename='examples/env/AnimalAI',
-                                                arenas_configurations=arena_config,
-                                                flatten_branched=True,
-                                                uint8_visual=True,
-                                                )
+                wid = worker_id
             else:
-                super(RayAAIGym, self).__init__(worker_id=env_config.worker_index,
-                                                environment_filename='examples/env/AnimalAI',
-                                                arenas_configurations=arena_config,
-                                                flatten_branched=True,
-                                                uint8_visual=True,
-                                                )
+                wid = env_config.worker_index
+            while True:
+                try:
+                    super(RayAAIGym, self).__init__(worker_id=wid,
+                                                    environment_filename='examples/env/AnimalAI',
+                                                    arenas_configurations=arena_config,
+                                                    flatten_branched=True,
+                                                    uint8_visual=True,
+                                                    )
+                except UnityWorkerInUseException:
+                    wid += 1
+                except (UnityTimeOutException, UnityGymException) as e:
+                    pass
+                else:
+                    break
 
     return RayAAIGym
 
@@ -196,24 +205,32 @@ class BeforeOrBehind(ArenaManager):
                 env = Env(env_config)
             except UnityTimeOutException:
                 if env:
-                    env.close()
+                    try:
+                        env.close()
+                    except AttributeError:
+                        pass
             else:
                 break
         x = []
         y = []
-        for _ in tqdm(range(ds_size_per_env)):
-            obs = env.reset()
+        # batch_size = 128
+        dir = DIRWrapper(trainer.get_policy().model)
 
-            dir = DIRWrapper(trainer.get_policy().model)
-
-            state = trainer.get_policy().model.get_initial_state()
-            for i in range(initial_steps):
-                action, state, _ = trainer.compute_action(obs, state)
-                obs, reward, done, info = env.step(action)
-            x.append(dir.get_dir())
-            y.append(settings["before"])
-        env.close()
-        return x, y
+        try:
+            for _ in tqdm(range(ds_size_per_env)):
+                obs = env.reset()
+                state = trainer.get_policy().model.get_initial_state()
+                for i in range(initial_steps):
+                    action, state, _ = trainer.compute_action(obs, state)
+                    obs, reward, done, info = env.step(action)
+                x.append(dir.get_dir())
+                y.append(settings["before"])
+            return x, y
+        finally:
+            try:
+                env.close()
+            except AttributeError:
+                pass
 
 
 class Occlusion(ArenaManager):
@@ -263,7 +280,7 @@ class Occlusion(ArenaManager):
         agent.positions[0].z = agent_z
         return arena_config
 
-    def collect_dir(self, trainer, ds_size_per_env, arena_config, settings, env_config, initial_steps=10):
+    def collect_dir(self, trainer, ds_size_per_env, arena_config, settings, env_config, initial_steps=3):
         """
         Procedure:
         1) Start agent
@@ -277,46 +294,54 @@ class Occlusion(ArenaManager):
         (DIR, is_occluded)
         """
         Env = GymFactory(arena_config, self.get_port())
+        env = None
         while True:
             try:
                 env = Env(env_config)
             except UnityTimeOutException:
                 if env:
-                    env.close()
+                    try:
+                        env.close()
+                    except AttributeError:
+                        pass
             else:
                 break
         dir = DIRWrapper(trainer.get_policy().model)
         x, y = [], []
+        try:
+            for _ in tqdm(range(ds_size_per_env)):
+                obs = env.reset()
+                # sum_reward = 0
+                state = trainer.get_policy().model.get_initial_state()
+                # state = [s.unsqueeze(0) for s in state]
+                for i in range(initial_steps):
+                    # trainer.compute_action()
+                    # prep = get_preprocessor(env.observation_space)(env.observation_space)
+                    # obs = torch.stack([torch.from_numpy(prep.transform(env.observation_space.sample())) for _ in range(100)],
+                    #                   dim=0)
+                    action, state, _ = trainer.compute_action(obs, state)
+                    obs, reward, done, info = env.step(action)
+                    # assert: the agent can see the wall and the ball
+                    if done:
+                        break
 
-        for _ in tqdm(range(ds_size_per_env)):
-            obs = env.reset()
-            # sum_reward = 0
-            state = trainer.get_policy().model.get_initial_state()
-            # state = [s.unsqueeze(0) for s in state]
-            for i in range(initial_steps):
-                # trainer.compute_action()
-                # prep = get_preprocessor(env.observation_space)(env.observation_space)
-                # obs = torch.stack([torch.from_numpy(prep.transform(env.observation_space.sample())) for _ in range(100)],
-                #                   dim=0)
-                action, state, _ = trainer.compute_action(obs, state)
-                obs, reward, done, info = env.step(action)
-                # assert: the agent can see the wall and the ball
-                if done:
-                    break
+                visible_dir = dir.get_dir()
 
-            visible_dir = dir.get_dir()
+                for i in range(100):
+                    action = 0
+                    obs, reward, done, info = env.step(action)
+                    # assert: the ball is behind the wall
 
-            for i in range(50):
-                action = 0
-                obs, reward, done, info = env.step(action)
-                # assert: the ball is behind the wall
-
-            occluded_dir = dir.get_dir()
-            x += [visible_dir, occluded_dir]
-            y += [False, True]
-            y.append(occluded_dir)
-        env.close()
-        return x, y
+                occluded_dir = dir.get_dir()
+                x += [visible_dir, occluded_dir]
+                y += [False, True]
+                y.append(occluded_dir)
+            return x, y
+        finally:
+            try:
+                env.close()
+            except AttributeError:
+                pass
 
 
 class Rotation(ArenaManager):
@@ -372,103 +397,119 @@ class Rotation(ArenaManager):
         (DIR, is_removed)
         """
         Env = GymFactory(arena_config, self.get_port())
+        env = None
         while True:
             try:
                 env = Env(env_config)
             except UnityTimeOutException:
                 if env:
-                    env.close()
+                    try:
+                        env.close()
+                    except AttributeError:
+                        pass
             else:
                 break
 
         # invisible
         removed_ac = remove_goal(arena_config)
         Env = GymFactory(removed_ac, self.get_port())
+        removed_env = None
         while True:
             try:
                 removed_env = Env(env_config)
             except UnityTimeOutException:
                 if removed_env:
-                    removed_env.close()
+                    try:
+                        removed_env.close()
+                    except AttributeError:
+                        pass
             else:
                 break
 
         dir = DIRWrapper(trainer.get_policy().model)
 
-        x = []
-        y = []
-        for i in tqdm(tqdm(range(ds_size_per_env))):
-            obs = env.reset()
-            actions = []
-            states = []
-            state = trainer.get_policy().model.get_initial_state()
-            # state = [s.unsqueeze(0) for s in state]
-            states.append(state)
-            done = False
-            for i in range(initial_steps):
-                action, state, _ = trainer.compute_action(obs, state)
-                # state = dir.dir[1]
-                # state = [s.squeeze(0) for s in state]
-
+        try:
+            x = []
+            y = []
+            for _ in tqdm(range(ds_size_per_env)):
+                obs = env.reset()
+                actions = []
+                states = []
+                state = trainer.get_policy().model.get_initial_state()
+                # state = [s.unsqueeze(0) for s in state]
                 states.append(state)
-                actions.append(action)
-                obs, reward, done, info = env.step(action)
-                if done:
-                    break
-            if not done:
-                raise RuntimeError("The agent failed to find the goal")
+                done = False
+                for i in range(initial_steps):
+                    action, state, _ = trainer.compute_action(obs, state)
+                    # state = dir.dir[1]
+                    # state = [s.squeeze(0) for s in state]
 
-            # visible
-            obs = env.reset()
-            for idx, ac in enumerate(actions[:-1]):
-                state = states[idx]
-                _, _, _ = trainer.compute_action(obs, state)
-                obs, reward, done, info = env.step(ac)
+                    states.append(state)
+                    actions.append(action)
+                    obs, reward, done, info = env.step(action)
+                    if done:
+                        break
+                if not done:
+                    raise RuntimeError("The agent failed to find the goal")
 
-            state = states[-1]
-            for ac in rotate_180():
-                _, state, _ = trainer.compute_action(obs, state)
-                obs, reward, done, info = env.step(ac)
-                # state = dir.dir[1]
-                # state = [s.squeeze(0) for s in state]
-                # obs, reward, done, info = env.step(ac)
+                # visible
+                # obs = env.reset()
+                # for idx, ac in enumerate(actions[:-1]):
+                #     state = states[idx]
+                #     _, _, _ = trainer.compute_action(obs, state)
+                #     obs, reward, done, info = env.step(ac)
 
-            visible_dir = dir.get_dir()
+                state = states[-1]
+                for ac in rotate_180():
+                    _, state, _ = trainer.compute_action(obs, state)
+                    obs, reward, done, info = env.step(ac)
+                    # state = dir.dir[1]
+                    # state = [s.squeeze(0) for s in state]
+                    # obs, reward, done, info = env.step(ac)
 
-            obs = removed_env.reset()
-            for idx, ac in enumerate(actions[:-1]):
-                state = states[idx]
-                _, _, _ = trainer.compute_action(obs, state)
-                obs, reward, done, info = env.step(ac)
+                visible_dir = dir.get_dir()
 
-            state = states[-1]
-            for ac in rotate_180():
-                _, state, _ = trainer.compute_action(obs, state)
-                obs, reward, done, info = env.step(ac)
-                # state = dir.dir[1]
-                # state = [s.squeeze(0) for s in state]
-                # obs, reward, done, info = env.step(ac)
+                obs = removed_env.reset()
+                for idx, ac in enumerate(actions[:-1]):
+                    state = states[idx]
+                    _, _, _ = trainer.compute_action(obs, state)
+                    obs, reward, done, info = env.step(ac)
 
-            # for idx, ac in enumerate(actions[:-1]):
-            #     state = states[idx]
-            #     action = trainer.get_policy().compute_actions(obs_batch=np.expand_dims(obs, axis=0),
-            #                                                   state_batches=state)
-            #     obs, reward, done, info = env.step(ac)
-            #
-            # state = states[-1]
-            # for ac in rotate_180():
-            #     action = trainer.get_policy().compute_actions(obs_batch=np.expand_dims(obs, axis=0),
-            #                                                   state_batches=state)
-            #     state = dir.dir[1]
-            #     state = [s.squeeze(0) for s in state]
-            #     obs, reward, done, info = env.step(ac)
+                state = states[-1]
+                for ac in rotate_180():
+                    _, state, _ = trainer.compute_action(obs, state)
+                    obs, reward, done, info = env.step(ac)
+                    # state = dir.dir[1]
+                    # state = [s.squeeze(0) for s in state]
+                    # obs, reward, done, info = env.step(ac)
 
-            removed_dir = dir.get_dir()
-            x += [visible_dir, removed_dir]
-            y += [False, True]
-        env.close()
-        removed_env.close()
-        return x, y
+                # for idx, ac in enumerate(actions[:-1]):
+                #     state = states[idx]
+                #     action = trainer.get_policy().compute_actions(obs_batch=np.expand_dims(obs, axis=0),
+                #                                                   state_batches=state)
+                #     obs, reward, done, info = env.step(ac)
+                #
+                # state = states[-1]
+                # for ac in rotate_180():
+                #     action = trainer.get_policy().compute_actions(obs_batch=np.expand_dims(obs, axis=0),
+                #                                                   state_batches=state)
+                #     state = dir.dir[1]
+                #     state = [s.squeeze(0) for s in state]
+                #     obs, reward, done, info = env.step(ac)
+
+                removed_dir = dir.get_dir()
+                x += [visible_dir, removed_dir]
+                y += [False, True]
+            return x, y
+        finally:
+            try:
+                env.close()
+            except AttributeError:
+                pass
+            try:
+                removed_env.close()
+            except AttributeError:
+                pass
 
 
 def randdouble(a, b):

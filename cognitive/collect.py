@@ -1,3 +1,5 @@
+import pickle
+
 import gym
 import ray
 import ray.rllib.agents.a3c as a3c
@@ -117,6 +119,9 @@ def collect_trainer(trainer, Arena: ArenaManager = BeforeOrBehind, num_envs=10, 
     arena = Arena()
     arena_config, settings = arena.generate_config()
     input, target = [], []
+    name = {BeforeOrBehind: "BeforeOrBehind",
+            Occlusion: "Occlusion",
+            Rotation: "Rotation"}
     # None
     # env = trainer.workers.local_worker().env
     for i in range(num_envs):
@@ -124,9 +129,47 @@ def collect_trainer(trainer, Arena: ArenaManager = BeforeOrBehind, num_envs=10, 
         input += a
         target += b
     dataset = DIRDataset(input, target)
-    trainer.cleanup()
-    # ray.shutdown()
+    with open('cognitive/dataset/' + name[Arena] + ".dir", "wb") as f:
+        pickle.dump(dataset, f)
     return dataset
+
+
+@ray.remote
+def par_helper(Arena, ds_size_per_env):
+    arena = Arena()
+    trainer = load_trainer()
+    arena_config, settings = arena.generate_config()
+    while True:
+        try:
+            a, b = arena.collect_dir(trainer, ds_size_per_env, arena_config, settings, trainer.config)
+        except UnityCommunicationException:
+            pass
+        else:
+            break
+    trainer.cleanup()
+    return a, b
+
+
+def par(num_envs=10, ds_size_per_env=1000):
+    print('Total dataset size = '+str(num_envs*ds_size_per_env))
+    ray.init(num_cpus=11)
+    Arenas = {BeforeOrBehind: "BeforeOrBehind",
+              Occlusion: "Occlusion",
+              Rotation: "Rotation"}
+    # None
+    # env = trainer.workers.local_worker().env
+    for Arena, name in Arenas.items():
+        xs = []
+        ys = []
+        results = [par_helper.remote(Arena, ds_size_per_env) for _ in range(num_envs)]
+        results = [ray.get(r) for r in results]
+        for res in results:
+            xs += res[0]
+            ys += res[1]
+        dataset = DIRDataset(xs, ys)
+        with open('cognitive/dataset/' + name + ".dir", "wb") as f:
+            pickle.dump(dataset, f)
+    ray.shutdown()
 
 
 #
@@ -137,14 +180,5 @@ def collect_trainer(trainer, Arena: ArenaManager = BeforeOrBehind, num_envs=10, 
 #
 
 if __name__ == '__main__':
-    ds_size = 2
-    ray.init()
-    trainer = load_trainer()
-    Arenas = [BeforeOrBehind, Occlusion, Rotation]
-    # Arenas = [Rotation]
-    base_port = 1000
-    num_envs = 10
-    ds_size_per_env = 10
-    for Arena in Arenas:
-        collect_trainer(trainer, Arena, num_envs=num_envs, ds_size_per_env=ds_size_per_env)
-        base_port += num_envs
+    # 20 minutes par(10, 100)
+    par(10, 100)
