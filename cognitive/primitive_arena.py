@@ -1,5 +1,8 @@
+import colorsys
 import copy
+import math
 import random
+import warnings
 from pathlib import Path
 
 import ray
@@ -32,7 +35,7 @@ import numpy as np
 def GymFactory(arena_config, worker_id=None):
     class RayAAIGym(AnimalAIGym):
         def __init__(self, env_config):
-            print("Opened")
+            # print("Opened")
             if worker_id is not None:
                 wid = worker_id
             else:
@@ -54,6 +57,10 @@ def GymFactory(arena_config, worker_id=None):
 
     return RayAAIGym
 
+class ArenaConfigRegenerationRequest(Exception):
+    def __init__(self):
+        super(ArenaConfigRegenerationRequest, self).__init__()
+
 
 class ArenaManager:
     """
@@ -71,17 +78,27 @@ class ArenaManager:
             f.write(st)
 
     def play(self, arena_config):
-        try:
-            environment = AnimalAIEnvironment(
-                file_name='examples/env/AnimalAI',
-                base_port=5005,
-                arenas_configurations=arena_config,
-                play=True,
-            )
-        except UnityCommunicationException:
-            # you'll end up here if you close the environment window directly
-            # always try to close it from script
-            environment.close()
+        wid = 1
+        environment = None
+        while True:
+            try:
+                environment = AnimalAIEnvironment(
+                    file_name='examples/env/AnimalAI',
+                    worker_id=wid,
+                    base_port=5005,
+                    arenas_configurations=arena_config,
+                    play=True,
+                )
+            except UnityCommunicationException:
+                # you'll end up here if you close the environment window directly
+                # always try to close it from script
+                if environment:
+                    environment.close()
+            except UnityWorkerInUseException:
+                wid += 1
+                pass
+            else:
+                break
 
         if environment:
             environment.close()  # takes a few seconds
@@ -246,10 +263,11 @@ class Occlusion(ArenaManager):
         """
         agent_z = randdouble(1, 7)
 
-        if random.random() < 0.5:
-            agent_rotation = randdouble(0, 30)
-        else:
-            agent_rotation = randdouble(330, 360)
+        # remove left rotation because the ball is not visible
+        # if random.random() < 0.5:
+        agent_rotation = randdouble(20, 70)
+        # else:
+        # agent_rotation = randdouble(330, 360)
 
         wall_length = randdouble(10, 30)
 
@@ -280,7 +298,7 @@ class Occlusion(ArenaManager):
         agent.positions[0].z = agent_z
         return arena_config
 
-    def collect_dir(self, trainer, ds_size_per_env, arena_config, settings, env_config, initial_steps=3):
+    def collect_dir(self, trainer, ds_size_per_env, arena_config, settings, env_config, initial_steps=5):
         """
         Procedure:
         1) Start agent
@@ -321,21 +339,26 @@ class Occlusion(ArenaManager):
                     #                   dim=0)
                     action, state, _ = trainer.compute_action(obs, state)
                     obs, reward, done, info = env.step(action)
-                    # assert: the agent can see the wall and the ball
                     if done:
                         break
+                if not goal_visible(obs):
+                    raise ArenaConfigRegenerationRequest()
 
                 visible_dir = dir.get_dir()
-
-                for i in range(100):
-                    action = 0
-                    obs, reward, done, info = env.step(action)
-                    # assert: the ball is behind the wall
+                # vis = obs.copy()
+                # visualize_observation(vis, "visible.png")
+                for i in range(150):
+                    _, state, _ = trainer.compute_action(obs, state)
+                    obs, reward, done, info = env.step(0)
+                # assert: the ball is behind the wall
+                if goal_visible(obs):
+                    raise ArenaConfigRegenerationRequest()
 
                 occluded_dir = dir.get_dir()
+                # visualize_observation(obs, "occluded.png")
+
                 x += [visible_dir, occluded_dir]
                 y += [False, True]
-                y.append(occluded_dir)
             return x, y
         finally:
             try:
@@ -354,12 +377,12 @@ class Rotation(ArenaManager):
         self.template_arena_config = ArenaConfig(self.template_path)
 
     def generate_config(self):
-        agent_x = randdouble(10, 30)
+        agent_x = randdouble(10, 20)
 
         if random.random() < 0.5:
-            agent_rotation = randdouble(0, 30)
+            agent_rotation = randdouble(0, 15)
         else:
-            agent_rotation = randdouble(330, 360)
+            agent_rotation = randdouble(345, 360)
 
         wall_length = randdouble(10, 30)
 
@@ -514,3 +537,30 @@ class Rotation(ArenaManager):
 
 def randdouble(a, b):
     return a + (b - a) * random.random()
+
+
+def visualize_observation(obs, save_name="vis.png"):
+    from PIL import Image
+    import numpy as np
+    img = Image.fromarray(obs, "RGB")
+    # img.show()
+    img.save(save_name)
+    # img.close()
+
+
+def goal_visible(obs):
+    green = colorsys.rgb_to_hls(129, 191, 65)
+    for i in obs:
+        for pixel in i:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                hls = colorsys.rgb_to_hls(*pixel)
+                if abs(hls[0] - green[0]) < 0.03:
+                    return True
+    return False
+
+
+def plot_obs(obs):
+    from matplotlib import pyplot as plt
+    plt.imshow(obs)
+    plt.show()

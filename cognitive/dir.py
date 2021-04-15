@@ -1,8 +1,9 @@
 import copy
-from random import random
+import random
 
 from animalai.envs.arena_config import ArenaConfig
 from torch.utils.data import Dataset
+import copy
 
 
 class DIRWrapper:
@@ -28,7 +29,7 @@ class DIRWrapper:
 
 def rotate_180():
     # env._flattener.action_lookup
-    if random() > 0.5:
+    if random.random() > 0.5:
         return [4] * 20
     else:
         return [5] * 20
@@ -58,3 +59,13 @@ class DIRDataset(Dataset):
 
     def __len__(self):
         return len(self.dir)
+
+    def split(self, ratio=0.1):
+        indices = list(range(len(self)))
+        random.shuffle(indices)
+        val_size = int(len(self) * ratio)
+        val, train = indices[:val_size], indices[val_size:]
+        val_dir, val_label = [self.dir[v] for v in val], [self.label[v] for v in val]
+        train_dir, train_label = [self.dir[t] for t in train], [self.label[t] for t in train]
+        a, b = DIRDataset(train_dir, train_label), DIRDataset(val_dir, val_label)
+        return a, b

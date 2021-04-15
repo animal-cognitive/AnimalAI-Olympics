@@ -3,7 +3,7 @@ from mlagents_envs.exception import UnityTimeOutException
 
 from cachey.load_trained_model import load_trainer
 from cognitive.dir import DIRWrapper, rotate_180
-from cognitive.primitive_arena import Occlusion, GymFactory
+from cognitive.primitive_arena import Occlusion, GymFactory, visualize_observation
 
 
 def test_occlusion_generate_config():
@@ -116,10 +116,3 @@ def test_rotation_generate_config():
 
     ray.shutdown()
 
-def visualize_observation(obs, save_name = "vis.png"):
-    from PIL import Image
-    import numpy as np
-    img = Image.fromarray(obs, "RGB")
-    # img.show()
-    img.save(save_name)
-    # img.close()

@@ -141,21 +141,25 @@ def par_helper(Arena, ds_size_per_env):
     arena_config, settings = arena.generate_config()
     while True:
         try:
-            a, b = arena.collect_dir(trainer, ds_size_per_env, arena_config, settings, trainer.config)
+            x, y = arena.collect_dir(trainer, ds_size_per_env, arena_config, settings, trainer.config)
         except UnityCommunicationException:
             pass
+        except ArenaConfigRegenerationRequest:
+            print("Arena config regenerated")
+            arena_config, settings = arena.generate_config()
         else:
             break
     trainer.cleanup()
-    return a, b
+    return x, y
 
 
 def par(num_envs=10, ds_size_per_env=1000):
-    print('Total dataset size = '+str(num_envs*ds_size_per_env))
+    print('Total dataset size = ' + str(num_envs * ds_size_per_env))
     ray.init(num_cpus=11)
     Arenas = {BeforeOrBehind: "BeforeOrBehind",
               Occlusion: "Occlusion",
               Rotation: "Rotation"}
+    Arenas = {Occlusion: "Occlusion"}
     # None
     # env = trainer.workers.local_worker().env
     for Arena, name in Arenas.items():
