@@ -1,20 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
-## Import All Needed Libraries
-
 import os
 from pathlib import Path
 
 from animalai.envs.gym.environment import AnimalAIGym
 
-from reduced_cache_model import *
+from cachey.cache_model import *
 
-# In[2]:
-## Reuse Wrapper for AnimalAI Environment
 content_root = Path(__file__).parent.parent
 
 
@@ -22,7 +15,9 @@ class UnityEnvWrapper(gym.Env):
     def __init__(self, env_config):
         self.vector_index = env_config.vector_index
         self.worker_index = env_config.worker_index
-        self.worker_id = env_config["unity_worker_id"] + env_config.worker_index
+        self.worker_id = env_config.worker_index
+        if "unity_worker_id" in env_config:
+            self.worker_id += env_config["unity_worker_id"]
         self.env = AnimalAIGym(
             environment_filename=str((content_root / "examples/env/AnimalAI").absolute()),
             worker_id=self.worker_id,
@@ -83,31 +78,34 @@ def update_phase(phase, ep_rew_mean, lesson_length):
     return phase
 
 
-def train(conf, reporter):
+def test_train():
+    # Load the first checkpoint from arena0-14runs
+    # load_path = 'C:\\Users\\benja\\ray_results\\arena0-14times\\checkpoint_100\\checkpoint-100'
+    # load_phase = 0
+    # load_lesson_length = 100
+    load_path = 'C:\\Users\\benja\\ray_results\\PPO_unity_env_2021-04-12_09-34-59ai5d4rj4\\checkpoint_1100\\checkpoint-1100'
+    load_phase = 2
+    load_lesson_length = 841
+
     phase = 0
     lesson_length = 0
+
+    phase = load_phase
+    lesson_length = load_lesson_length
+
     conf["env_config"] = {
-        "unity_worker_id": 107,
         "arena_to_train": str(
             (content_root / 'examples/configurations/curriculum' / arena_configurations[phase]).absolute()),
     }
     trainer = PPOTrainer(config=conf, env="unity_env")
-
-    # Load the first checkpoint from arena0-14runs
-    load_path = 'C:\\Users\\benja\\ray_results\\arena0-14times\\checkpoint_100\\checkpoint-100'
-    load_phase = 0
-    load_lesson_length = 100
-
     print('Loading checkpoint ', load_path)
     trainer.restore(load_path)
-    phase = load_phase
-    lesson_length = load_lesson_length
 
     print("HERE")
     while True:
         result = trainer.train()
         lesson_length += 1
-        reporter(**result)
+        # reporter(**result)
         new_phase = update_phase(phase, result["episode_reward_mean"], lesson_length)
 
         # Check new phase
@@ -135,14 +133,108 @@ def train(conf, reporter):
             print(checkpoint)
 
 
-from ray import tune
+def test_eval():
+    import pandas as pd
+    trained = True
+    df = pd.DataFrame()
+    animalai_exe = content_root / "examples/env/AnimalAI"
+    arena_root = content_root / 'competition_configurations'
+    test_arena = str((arena_root / '1-1-1.yml').absolute())
+    conf["env_config"] = {
+        "arena_to_train": test_arena,
+    }
+    trainer = PPOTrainer(config=conf, env="unity_env")
+    if trained:
+        trainer.restore('C:\\Users\\benja\\ray_results\\arena2\\checkpoint_1144\\checkpoint-1144')
+    # test env
+    env = AnimalAIGym(
+        environment_filename=str(animalai_exe.absolute()),
+        worker_id=700,
+        flatten_branched=True,
+        uint8_visual=True,
+        arenas_configurations=ArenaConfig(test_arena)
+    )
 
-result = tune.run(
-    train,
-    config=conf,
-    resources_per_trial={
-        "cpu": 1,
-        "gpu": 1,
-    },
-    stop={"timesteps_total": 1e7}
-)
+    env_sets = {
+        "idris": ['1-30-3.yml', '2-8-3.yml'],
+        "multiple_food": ['1-18-1.yml', '1-18-2.yml', '1-18-3.yml', '1-19-1.yml', '1-19-2.yml', '1-19-3.yml',
+                          '4-30-1.yml', '4-30-2.yml', '4-30-3.yml'],
+        "basic_food_obstacles": ['3-1-1.yml', '3-1-3.yml', '3-1-2.yml', '3-3-2.yml', '3-2-1.yml', '3-2-2.yml',
+                                 '3-2-3.yml',
+                                 '3-3-1.yml', '3-3-3.yml'],
+        "basic_food": ['1-4-1.yml', '1-4-2.yml', '1-4-3.yml', '1-5-1.yml', '1-5-2.yml', '1-5-3.yml'],
+        "exploration": ['1-12-1.yml', '1-16-1.yml', '1-12-2.yml', '1-12-3.yml', '1-13-1.yml', '1-13-2.yml',
+                        '1-13-3.yml',
+                        '1-14-1.yml', '1-14-2.yml', '1-14-3.yml', '1-15-1.yml', '1-15-2.yml', '1-15-3.yml',
+                        '1-16-2.yml',
+                        '1-16-3.yml', '1-17-1.yml', '1-17-2.yml', '1-17-3.yml'],
+    }
+
+    my_selection = 'basic_food'
+
+    try:
+        for i, arena_name in enumerate(env_sets[my_selection]):
+            arena_configuration = arena_root / arena_name
+            env._env.reset(ArenaConfig(str(arena_configuration.absolute())))
+
+            # Load trainer with test env too, although we won't be rolling out in it
+            # conf["record_env"] = True
+            conf["env_config"] = {
+                "unity_worker_id": i * 10,
+                "arena_to_train": str(arena_configuration.absolute()),
+            }
+            state = trainer.get_policy().model.get_initial_state()
+
+            # _, state = rollout(env, state, trainer, 1000)  # rollout some steps to get a good recurrent state
+            episode_rewards = rollout_eps(env, state, trainer, 10)
+
+            # env.close()
+            # trainer.cleanup()
+            results = {
+                "arena": str(arena_configuration),
+                "trained": trained,
+                "episodes_ran": len(episode_rewards),
+                "mean_eps_rew": np.mean(episode_rewards),
+                "std_eps_rew": np.std(episode_rewards),
+                "eps_success": len([j for j in episode_rewards if j >= 0])
+            }
+            df = df.append(results, ignore_index=True)
+            for k, v in results.items():
+                print(k + ':', v)
+    finally:
+        print(df)
+        df.to_csv(str((content_root / f"results_{my_selection}.csv").absolute()))
+
+
+def rollout(env, state, trainer, timesteps_to_run):
+    timesteps_passed = 0
+    episode_rewards = []
+    while timesteps_passed < timesteps_to_run:
+        obs = env.reset()
+        episode_reward = 0
+        done = False
+        while not done:
+            action = trainer.compute_action(obs, state)
+            action, state = action[0], action[1]
+            obs, reward, done, info = env.step(action)
+            episode_reward += reward
+            timesteps_passed += 1
+        episode_rewards.append(episode_reward)
+    return episode_rewards, state
+
+
+def rollout_eps(env, state, trainer, eps_to_run):
+    timesteps_passed = 0
+    episode_rewards = []
+    while len(episode_rewards) < eps_to_run:
+        obs = env.reset()
+        episode_reward = 0
+        done = False
+        while not done:
+            action = trainer.compute_action(obs, state)
+            action, state = action[0], action[1]
+            obs, reward, done, info = env.step(action)
+            episode_reward += reward
+            timesteps_passed += 1
+        episode_rewards.append(episode_reward)
+    return episode_rewards
