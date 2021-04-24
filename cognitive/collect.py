@@ -5,7 +5,7 @@ import ray
 import ray.rllib.agents.a3c as a3c
 from ray import tune
 
-from cachey.cache_model import MyCNNRNNModel
+from cachey.reduced_cache_model import MyCNNRNNModel
 from cachey.load_trained_model import load_trainer
 from cognitive.primitive_arena import *
 
@@ -135,9 +135,9 @@ def collect_trainer(trainer, Arena: ArenaManager = BeforeOrBehind, num_envs=10, 
 
 
 @ray.remote
-def par_helper(Arena, ds_size_per_env):
+def par_helper(model, Arena, ds_size_per_env):
     arena = Arena()
-    trainer = load_trainer()
+    trainer = load_trainer(model)
     arena_config, settings = arena.generate_config()
     while True:
         try:
@@ -153,25 +153,26 @@ def par_helper(Arena, ds_size_per_env):
     return x, y
 
 
-def par(num_envs=10, ds_size_per_env=1000):
+def par(model, num_envs=10, ds_size_per_env=1000):
     print('Total dataset size = ' + str(num_envs * ds_size_per_env))
     ray.init(num_cpus=11)
     Arenas = {BeforeOrBehind: "BeforeOrBehind",
               Occlusion: "Occlusion",
               Rotation: "Rotation"}
-    Arenas = {Occlusion: "Occlusion"}
+    # Arenas = {Occlusion: "Occlusion",
+    #           Rotation: "Rotation"}
     # None
     # env = trainer.workers.local_worker().env
     for Arena, name in Arenas.items():
         xs = []
         ys = []
-        results = [par_helper.remote(Arena, ds_size_per_env) for _ in range(num_envs)]
+        results = [par_helper.remote(model, Arena, ds_size_per_env) for _ in range(num_envs)]
         results = [ray.get(r) for r in results]
         for res in results:
             xs += res[0]
             ys += res[1]
         dataset = DIRDataset(xs, ys)
-        with open('cognitive/dataset/' + name + ".dir", "wb") as f:
+        with open(f'cognitive/{model}_dataset/{name}.dir', "wb") as f:
             pickle.dump(dataset, f)
     ray.shutdown()
 
@@ -185,4 +186,4 @@ def par(num_envs=10, ds_size_per_env=1000):
 
 if __name__ == '__main__':
     # 20 minutes par(10, 100)
-    par(10, 100)
+    par("lstm", 10, 100)

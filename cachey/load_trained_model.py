@@ -1,9 +1,10 @@
+import ray
 from mlagents_envs.exception import UnityWorkerInUseException, UnityTimeOutException
 
 from cognitive.primitive_arena import GymFactory
 
 
-def load_trainer():
+def load_trainer(model="reduced"):
     ## Import All Needed Libraries
 
     import os
@@ -19,9 +20,7 @@ def load_trainer():
     from ray.rllib.models import ModelCatalog
     from ray.tune.logger import pretty_print
 
-    from cachey.cache_model import MyCNNRNNModel
     # from config import get_cfg
-
     # from custom_model import *
     # %%
 
@@ -32,7 +31,6 @@ def load_trainer():
         return GymClass(env_config)
 
     # %%
-
     ## Setup configuration to use
 
     conf = {
@@ -58,8 +56,24 @@ def load_trainer():
     ## Setup and register environment
     # ray.shutdown()
     # ray.init(num_gpus=2)
-
-    ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
+    if model == "reduced":
+        from cachey.reduced_cache_model import MyCNNRNNModel
+        ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
+        PATH_TO_CHECKPOINT_FILE = 'log/PPO_unity_env_2021-04-09_02-16-38lwq8v0v4/checkpoint_3500/checkpoint-3500'
+    elif model == "whole":
+        from cachey.whole_cache_model import MyCNNRNNModel
+        ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
+        PATH_TO_CHECKPOINT_FILE = 'log/PPO_unity_env_2021-04-13_00-31-01qhgyp4n0/checkpoint_1144/checkpoint-1144'
+    elif model == "lstm":
+        from cachey.whole_cache_model import MyCNNRNNModel
+        ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
+        PATH_TO_CHECKPOINT_FILE = 'log/PPO_unity_env_2021-04-18_10-51-24rl1myjn5_lstm/checkpoint_5000/checkpoint-5000'
+    elif model == "rnn":
+        from cachey.whole_cache_model import MyCNNRNNModel
+        ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
+        PATH_TO_CHECKPOINT_FILE = 'log/PPO_unity_env_2021-04-18_20-51-57f1rzdwyo_cnn/checkpoint_5000/checkpoint-5000'
+    else:
+        raise ValueError
 
     register_env("unity_env", env_factory)
 
@@ -67,11 +81,11 @@ def load_trainer():
 
     # conf["env_config"]["base_port"] = 5009
     trainer = PPOTrainer(config=conf, env="unity_env")
-    PATH_TO_CHECKPOINT_FILE = 'log/PPO_unity_env_2021-04-09_02-16-38lwq8v0v4/checkpoint_3500/checkpoint-3500'
     # trainer.restore('/home/azibit/ray_results/PPO_unity_env_2021-04-08_16-48-575mk5ga4m/checkpoint_500/checkpoint-500')
     trainer.restore(PATH_TO_CHECKPOINT_FILE)
     return trainer
 
 if __name__ == '__main__':
-    tr = load_trainer()
+    ray.init()
+    tr = load_trainer(model="whole")
     print(tr)

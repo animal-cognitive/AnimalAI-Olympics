@@ -3,7 +3,7 @@ from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.models import ModelCatalog
 from ray.tune.logger import pretty_print
 
-from cache_model import *
+from reduced_cache_model import *
 from config import get_cfg
 from custom_model import *
 

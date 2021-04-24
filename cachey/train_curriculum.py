@@ -11,7 +11,7 @@ from pathlib import Path
 
 from animalai.envs.gym.environment import AnimalAIGym
 
-from cache_model import *
+from reduced_cache_model import *
 
 # In[2]:
 ## Reuse Wrapper for AnimalAI Environment

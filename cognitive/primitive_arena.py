@@ -265,7 +265,7 @@ class Occlusion(ArenaManager):
 
         # remove left rotation because the ball is not visible
         # if random.random() < 0.5:
-        agent_rotation = randdouble(20, 70)
+        agent_rotation = randdouble(20, 50)
         # else:
         # agent_rotation = randdouble(330, 360)
 
@@ -298,7 +298,7 @@ class Occlusion(ArenaManager):
         agent.positions[0].z = agent_z
         return arena_config
 
-    def collect_dir(self, trainer, ds_size_per_env, arena_config, settings, env_config, initial_steps=5):
+    def collect_dir(self, trainer, ds_size_per_env, arena_config, settings, env_config, initial_steps=0):
         """
         Procedure:
         1) Start agent
