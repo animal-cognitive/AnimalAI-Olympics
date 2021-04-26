@@ -232,16 +232,16 @@ class BeforeOrBehind(ArenaManager):
         y = []
         # batch_size = 128
         dir = DIRWrapper(trainer.get_policy().model)
-
         try:
             for _ in tqdm(range(ds_size_per_env)):
                 obs = env.reset()
                 state = trainer.get_policy().model.get_initial_state()
                 for i in range(initial_steps):
-                    action, state, _ = trainer.compute_action(obs, state)
+                    action, state, _ = compute_action(trainer, obs, state)
                     obs, reward, done, info = env.step(action)
                 x.append(dir.get_dir())
                 y.append(settings["before"])
+                # plot_obs(obs)
             return x, y
         finally:
             try:
@@ -337,7 +337,7 @@ class Occlusion(ArenaManager):
                     # prep = get_preprocessor(env.observation_space)(env.observation_space)
                     # obs = torch.stack([torch.from_numpy(prep.transform(env.observation_space.sample())) for _ in range(100)],
                     #                   dim=0)
-                    action, state, _ = trainer.compute_action(obs, state)
+                    action, state, _ = compute_action(trainer, obs, state)
                     obs, reward, done, info = env.step(action)
                     if done:
                         break
@@ -345,10 +345,11 @@ class Occlusion(ArenaManager):
                     raise ArenaConfigRegenerationRequest()
 
                 visible_dir = dir.get_dir()
+                # plot_obs(obs)
                 # vis = obs.copy()
                 # visualize_observation(vis, "visible.png")
                 for i in range(150):
-                    _, state, _ = trainer.compute_action(obs, state)
+                    _, state, _ = compute_action(trainer, obs, state)
                     obs, reward, done, info = env.step(0)
                 # assert: the ball is behind the wall
                 if goal_visible(obs):
@@ -463,7 +464,7 @@ class Rotation(ArenaManager):
                 states.append(state)
                 done = False
                 for i in range(initial_steps):
-                    action, state, _ = trainer.compute_action(obs, state)
+                    action, state, _ = compute_action(trainer, obs, state)
                     # state = dir.dir[1]
                     # state = [s.squeeze(0) for s in state]
 
@@ -472,6 +473,7 @@ class Rotation(ArenaManager):
                     obs, reward, done, info = env.step(action)
                     if done:
                         break
+                # plot_obs(obs)
                 if not done:
                     raise RuntimeError("The agent failed to find the goal")
 
@@ -479,12 +481,12 @@ class Rotation(ArenaManager):
                 # obs = env.reset()
                 # for idx, ac in enumerate(actions[:-1]):
                 #     state = states[idx]
-                #     _, _, _ = trainer.compute_action(obs, state)
+                #     _, _, _ = compute_action(trainer, obs, state)
                 #     obs, reward, done, info = env.step(ac)
 
                 state = states[-1]
                 for ac in rotate_180():
-                    _, state, _ = trainer.compute_action(obs, state)
+                    _, state, _ = compute_action(trainer, obs, state)
                     obs, reward, done, info = env.step(ac)
                     # state = dir.dir[1]
                     # state = [s.squeeze(0) for s in state]
@@ -492,20 +494,23 @@ class Rotation(ArenaManager):
 
                 visible_dir = dir.get_dir()
 
+                # if goal_visible(obs):
+                #     raise ArenaConfigRegenerationRequest()
                 obs = removed_env.reset()
                 for idx, ac in enumerate(actions[:-1]):
                     state = states[idx]
-                    _, _, _ = trainer.compute_action(obs, state)
+                    _, _, _ = compute_action(trainer, obs, state)
                     obs, reward, done, info = env.step(ac)
 
                 state = states[-1]
                 for ac in rotate_180():
-                    _, state, _ = trainer.compute_action(obs, state)
+                    _, state, _ = compute_action(trainer, obs, state)
                     obs, reward, done, info = env.step(ac)
                     # state = dir.dir[1]
                     # state = [s.squeeze(0) for s in state]
                     # obs, reward, done, info = env.step(ac)
-
+                # if goal_visible(obs):
+                #     raise ArenaConfigRegenerationRequest()
                 # for idx, ac in enumerate(actions[:-1]):
                 #     state = states[idx]
                 #     action = trainer.get_policy().compute_actions(obs_batch=np.expand_dims(obs, axis=0),
@@ -564,3 +569,11 @@ def plot_obs(obs):
     from matplotlib import pyplot as plt
     plt.imshow(obs)
     plt.show()
+    plt.close()
+
+def compute_action(trainer, obs, state):
+    ret = trainer.compute_action(obs, state)
+    if isinstance(ret, np.int64):
+        return ret, [], None
+    else:
+        return ret

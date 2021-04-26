@@ -9,10 +9,12 @@ from tensorboardX import SummaryWriter
 import os
 
 from cognitive.global_params import *
+
 """
 MIT License
 Jason Hu
 """
+
 
 class Logger:
     """
@@ -119,6 +121,9 @@ class Logger:
             elif isinstance(val, torch.Tensor):
                 val = val.item()
                 val_str = f"{val:{wid}.4f}|"
+            elif isinstance(val, str):
+                wid = max(16, len(val))
+                val_str = f"{val:>{wid}}|"
             else:
                 try:
                     val = float(val)
@@ -131,10 +136,12 @@ class Logger:
                         raise NotImplementedError(str(val.__class__) + " cannot be logged")
             if tensorboard:
                 if col.lower() not in ("epoch", "iter", "iteration"):
-                    if "epoch" in column_values:
-                        self.writer.add_scalar(prepend + '/' + col, val, column_values["epoch"])
+                    if isinstance(val, str):
+                        self.writer.add_text(prepend + '/' + col, val,
+                                             global_step=column_values["epoch"] if "epoch" in column_values else None)
                     else:
-                        self.writer.add_scalar(prepend + '/' + col, val)
+                        self.writer.add_scalar(prepend + '/' + col, val,
+                                               global_step=column_values["epoch"] if "epoch" in column_values else None)
 
             values += val_str
             headers += f"{col:>{wid}}|"

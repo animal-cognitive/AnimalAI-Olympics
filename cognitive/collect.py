@@ -138,17 +138,21 @@ def collect_trainer(trainer, Arena: ArenaManager = BeforeOrBehind, num_envs=10, 
 def par_helper(model, Arena, ds_size_per_env):
     arena = Arena()
     trainer = load_trainer(model)
+    repeat = 10
+    restart = ds_size_per_env // repeat
+
     arena_config, settings = arena.generate_config()
-    while True:
-        try:
-            x, y = arena.collect_dir(trainer, ds_size_per_env, arena_config, settings, trainer.config)
-        except UnityCommunicationException:
-            pass
-        except ArenaConfigRegenerationRequest:
-            print("Arena config regenerated")
-            arena_config, settings = arena.generate_config()
-        else:
-            break
+    for res in range(restart):
+        while True:
+            try:
+                x, y = arena.collect_dir(trainer, repeat, arena_config, settings, trainer.config)
+            except UnityCommunicationException:
+                pass
+            except ArenaConfigRegenerationRequest:
+                print("Arena config regenerated")
+                arena_config, settings = arena.generate_config()
+            else:
+                break
     trainer.cleanup()
     return x, y
 
@@ -159,8 +163,10 @@ def par(model, num_envs=10, ds_size_per_env=1000):
     Arenas = {BeforeOrBehind: "BeforeOrBehind",
               Occlusion: "Occlusion",
               Rotation: "Rotation"}
-    # Arenas = {Occlusion: "Occlusion",
-    #           Rotation: "Rotation"}
+    Arenas = {BeforeOrBehind: "BeforeOrBehind",
+              Occlusion: "Occlusion",
+              # Rotation: "Rotation"
+              }
     # None
     # env = trainer.workers.local_worker().env
     for Arena, name in Arenas.items():
@@ -184,6 +190,39 @@ def par(model, num_envs=10, ds_size_per_env=1000):
 #     collect(Arena=Rotation, ds_size=ds_size)
 #
 
+def debug():
+    Arenas = {BeforeOrBehind: "BeforeOrBehind",
+              # Occlusion: "Occlusion",
+              # Rotation: "Rotation"
+              }
+    ray.init(local_mode=True)
+    mnames = ["cnn", "lstm", "reduced", "whole"]
+    for mname in mnames:
+        for Arena in Arenas:
+            arena = Arena()
+            trainer = load_trainer(mname)
+            arena_config, settings = arena.generate_config()
+            while True:
+                try:
+                    x, y = arena.collect_dir(trainer, 2, arena_config, settings, trainer.config)
+                except UnityCommunicationException:
+                    pass
+                except ArenaConfigRegenerationRequest:
+                    print("Arena config regenerated")
+                    arena_config, settings = arena.generate_config()
+                else:
+                    break
+            pass
+    ray.shutdown()
+
+
+def collect_all():
+    # 2 hours each collection
+    par("cnn", 10, 500)
+    par("lstm", 10, 500)
+    par("whole", 10, 500)
+    par("reduced", 10, 500)
+
+
 if __name__ == '__main__':
-    # 20 minutes par(10, 100)
-    par("lstm", 10, 100)
+    debug()

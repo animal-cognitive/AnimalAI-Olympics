@@ -65,12 +65,12 @@ def load_trainer(model="reduced"):
         ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
         PATH_TO_CHECKPOINT_FILE = 'log/PPO_unity_env_2021-04-13_00-31-01qhgyp4n0/checkpoint_1144/checkpoint-1144'
     elif model == "lstm":
-        from cachey.whole_cache_model import MyCNNRNNModel
-        ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
+        from cachey.lstm_model import LSTMModel
+        ModelCatalog.register_custom_model("my_cnn_rnn_model", LSTMModel)
         PATH_TO_CHECKPOINT_FILE = 'log/PPO_unity_env_2021-04-18_10-51-24rl1myjn5_lstm/checkpoint_5000/checkpoint-5000'
-    elif model == "rnn":
-        from cachey.whole_cache_model import MyCNNRNNModel
-        ModelCatalog.register_custom_model("my_cnn_rnn_model", MyCNNRNNModel)
+    elif model == "cnn":
+        from cachey.cnn_model import CNNModel
+        ModelCatalog.register_custom_model("my_cnn_rnn_model", CNNModel)
         PATH_TO_CHECKPOINT_FILE = 'log/PPO_unity_env_2021-04-18_20-51-57f1rzdwyo_cnn/checkpoint_5000/checkpoint-5000'
     else:
         raise ValueError
