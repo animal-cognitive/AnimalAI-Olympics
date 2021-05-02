@@ -68,7 +68,6 @@ class DIRDataset(Dataset):
 
     def split(self, ratio=0.1):
         self.clean()
-        self.balance()
 
         indices = list(range(len(self)))
         random.shuffle(indices)
@@ -85,8 +84,10 @@ class DIRDataset(Dataset):
         pos_idx = [i for i in range(len(self)) if self.label[i]]*2
         neg_idx = [i for i in range(len(self)) if not self.label[i]]*2
         balanced = len(self) // 2
-        pos = random.sample(pos_idx, k=balanced)
-        neg = random.sample(neg_idx, k=balanced)
+        # pos = random.sample(pos_idx, k=balanced)
+        # neg = random.sample(neg_idx, k=balanced)
+        pos = self.trim_or_copy(pos_idx, balanced)
+        neg = self.trim_or_copy(neg_idx, balanced)
         dir = []
         label = []
         for idx in pos + neg:
@@ -94,6 +95,12 @@ class DIRDataset(Dataset):
             label.append(self.label[idx])
         self.dir = dir
         self.label = label
+
+    def trim_or_copy(self, l, length):
+        if len(l)>length:
+            return l[:length]
+        else:
+            return l+l[:length-len(l)]
 
     def clean(self):
         for idx, d in enumerate(self.dir):

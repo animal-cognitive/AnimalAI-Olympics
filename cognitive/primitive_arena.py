@@ -109,7 +109,7 @@ class ArenaManager:
     def modify_yaml(self, *args, **kwargs):
         pass
 
-    def collect_dir(self, trainer, ds_size_per_env, arena_config, settings, env_config, initial_steps=10):
+    def collect_dir(self, trainer, reuse, arena_config, settings, env_config, initial_steps=10):
         pass
 
     # def interact(self):
@@ -202,7 +202,7 @@ class BeforeOrBehind(ArenaManager):
         agent.rotations[0] = agent_rotation
         return arena_config
 
-    def collect_dir(self, trainer, ds_size_per_env, arena_config, settings, env_config, initial_steps=10):
+    def collect_dir(self, trainer, reuse, arena_config, settings, env_config, initial_steps=10):
         """
         Procedure:
         1) Start agent
@@ -233,7 +233,7 @@ class BeforeOrBehind(ArenaManager):
         # batch_size = 128
         dir = DIRWrapper(trainer.get_policy().model)
         try:
-            for _ in tqdm(range(ds_size_per_env)):
+            for _ in range(reuse):
                 obs = env.reset()
                 state = trainer.get_policy().model.get_initial_state()
                 for i in range(initial_steps):
@@ -298,7 +298,7 @@ class Occlusion(ArenaManager):
         agent.positions[0].z = agent_z
         return arena_config
 
-    def collect_dir(self, trainer, ds_size_per_env, arena_config, settings, env_config, initial_steps=0):
+    def collect_dir(self, trainer, reuse, arena_config, settings, env_config, initial_steps=0):
         """
         Procedure:
         1) Start agent
@@ -327,7 +327,7 @@ class Occlusion(ArenaManager):
         dir = DIRWrapper(trainer.get_policy().model)
         x, y = [], []
         try:
-            for _ in tqdm(range(ds_size_per_env)):
+            for _ in range(reuse):
                 obs = env.reset()
                 # sum_reward = 0
                 state = trainer.get_policy().model.get_initial_state()
@@ -405,7 +405,7 @@ class Rotation(ArenaManager):
         agent.positions[0].x = agent_x
         return arena_config
 
-    def collect_dir(self, trainer, ds_size_per_env, arena_config, settings, env_config, initial_steps=1000):
+    def collect_dir(self, trainer, reuse, arena_config, settings, env_config, initial_steps=1000):
         """
         Procedure:
         1) Start agent, record action
@@ -455,7 +455,7 @@ class Rotation(ArenaManager):
         try:
             x = []
             y = []
-            for _ in tqdm(range(ds_size_per_env)):
+            for _ in range(reuse):
                 obs = env.reset()
                 actions = []
                 states = []
@@ -473,9 +473,9 @@ class Rotation(ArenaManager):
                     obs, reward, done, info = env.step(action)
                     if done:
                         break
-                # plot_obs(obs)
-                if not done:
-                    raise RuntimeError("The agent failed to find the goal")
+                plot_obs(obs)
+                # if not done: # you need to check manually by plotting the observation
+                #     raise RuntimeError("The agent failed to find the goal")
 
                 # visible
                 # obs = env.reset()

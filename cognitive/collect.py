@@ -16,6 +16,8 @@ from cachey.config import get_cfg
 from cognitive.primitive_arena import Occlusion
 from ray.rllib.models import ModelCatalog
 from cachey.custom_model import *
+import subprocess
+import time
 
 
 def train_agent():
@@ -135,52 +137,58 @@ def collect_trainer(trainer, Arena: ArenaManager = BeforeOrBehind, num_envs=10, 
 
 
 @ray.remote
-def par_helper(model, Arena, ds_size_per_env):
+def par_helper(model, Arena, reuse=10):
     arena = Arena()
     trainer = load_trainer(model)
-    repeat = 10
-    restart = ds_size_per_env // repeat
 
     arena_config, settings = arena.generate_config()
-    for res in range(restart):
-        while True:
-            try:
-                x, y = arena.collect_dir(trainer, repeat, arena_config, settings, trainer.config)
-            except UnityCommunicationException:
-                pass
-            except ArenaConfigRegenerationRequest:
-                print("Arena config regenerated")
-                arena_config, settings = arena.generate_config()
-            else:
-                break
+    while True:
+        try:
+            x, y = arena.collect_dir(trainer, reuse, arena_config, settings, trainer.config)
+        except UnityCommunicationException:
+            pass
+        except ArenaConfigRegenerationRequest:
+            print("Arena config regenerated")
+            arena_config, settings = arena.generate_config()
+        else:
+            break
     trainer.cleanup()
     return x, y
 
 
-def par(model, num_envs=10, ds_size_per_env=1000):
+def par(model, num_envs=500, ds_size_per_env=10):
     print('Total dataset size = ' + str(num_envs * ds_size_per_env))
-    ray.init(num_cpus=11)
-    Arenas = {BeforeOrBehind: "BeforeOrBehind",
-              Occlusion: "Occlusion",
-              Rotation: "Rotation"}
+    # Arenas = {BeforeOrBehind: "BeforeOrBehind",
+    #           Occlusion: "Occlusion",
+    #           Rotation: "Rotation"}
     Arenas = {BeforeOrBehind: "BeforeOrBehind",
               Occlusion: "Occlusion",
               # Rotation: "Rotation"
               }
     # None
     # env = trainer.workers.local_worker().env
+    restart_per_env = 50
+    restart = num_envs // restart_per_env
+
     for Arena, name in Arenas.items():
         xs = []
         ys = []
-        results = [par_helper.remote(model, Arena, ds_size_per_env) for _ in range(num_envs)]
-        results = [ray.get(r) for r in results]
-        for res in results:
-            xs += res[0]
-            ys += res[1]
+        for _ in tqdm(range(restart)):
+            ray.init(num_cpus=6, log_to_driver=False, include_dashboard=False)
+            results = [par_helper.remote(model, Arena, ds_size_per_env) for _ in range(restart_per_env)]
+            results = [ray.get(r) for r in results]
+            for res in results:
+                xs += res[0]
+                ys += res[1]
+            ray.shutdown()
+            subprocess.Popen("ray stop --force", shell=True)
+            subprocess.Popen("pkill -9 -f AnimalAI.x86_64", shell=True)
+            time.sleep(1)
         dataset = DIRDataset(xs, ys)
+        dir_path = Path(f"cognitive/{model}_dataset")
+        dir_path.mkdir(exist_ok=True)
         with open(f'cognitive/{model}_dataset/{name}.dir', "wb") as f:
             pickle.dump(dataset, f)
-    ray.shutdown()
 
 
 #
@@ -191,12 +199,13 @@ def par(model, num_envs=10, ds_size_per_env=1000):
 #
 
 def debug():
-    Arenas = {BeforeOrBehind: "BeforeOrBehind",
-              # Occlusion: "Occlusion",
-              # Rotation: "Rotation"
+    Arenas = {#BeforeOrBehind: "BeforeOrBehind",
+              #Occlusion: "Occlusion",
+              Rotation: "Rotation"
               }
     ray.init(local_mode=True)
-    mnames = ["cnn", "lstm", "reduced", "whole"]
+    # mnames = ["cnn", "lstm", "reduced", "whole"]
+    mnames = ["reduced"]  # , "whole"]
     for mname in mnames:
         for Arena in Arenas:
             arena = Arena()
@@ -218,10 +227,11 @@ def debug():
 
 def collect_all():
     # 2 hours each collection
-    par("cnn", 10, 500)
-    par("lstm", 10, 500)
-    par("whole", 10, 500)
-    par("reduced", 10, 500)
+
+    par("cnn")
+    par("lstm")
+    par("whole")
+    par("reduced")
 
 
 if __name__ == '__main__':
