@@ -1,0 +1,296 @@
+/home/jasonhu/anaconda3/envs/animal/bin/python /home/jasonhu/Downloads/pycharm-2020.3.3/plugins/python/helpers/pydev/pydevd.py --cmd-line --multiproc --qt-support=auto --client 127.0.0.1 --port 36831 --file /mnt/delta/Git/AnimalAI-Olympics/cognitive/evaluate.py
+Connected to pydev debugger (build 203.7148.72)
+WARNING:tensorflow:From /home/jasonhu/anaconda3/envs/animal/lib/python3.7/site-packages/tensorflow_core/python/compat/v2_compat.py:65: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+Instructions for updating:
+non-resource variables are not supported in the long term
+/home/jasonhu/anaconda3/envs/animal/lib/python3.7/site-packages/torch/nn/modules/lazy.py:175: UserWarning: Lazy modules are a new feature under heavy development so changes to the API or functionality can happen at any moment.
+  warnings.warn('Lazy modules are a new feature under heavy development '
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|       0|  BeforeOrBehind|  0.6931|  0.5051|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|      20|  BeforeOrBehind|  0.6289|  0.6330|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|      40|  BeforeOrBehind|  0.6068|  0.6559|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|      60|  BeforeOrBehind|  0.5832|  0.6770|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|      80|  BeforeOrBehind|  0.5611|  0.6945|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|     100|  BeforeOrBehind|  0.5428|  0.7091|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|     120|  BeforeOrBehind|  0.5283|  0.7195|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|     140|  BeforeOrBehind|  0.5179|  0.7270|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|     160|  BeforeOrBehind|  0.5109|  0.7323|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|     180|  BeforeOrBehind|  0.5085|  0.7349|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|     200|  BeforeOrBehind|  0.5078|  0.7360|
+                   ======VALIDATION======
+|           model|    loss|accuracy|           arena|
+|             cnn|  1.2285|  0.6740|  BeforeOrBehind|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|       0|       Occlusion|  0.6934|  0.5041|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|      20|       Occlusion|  0.6929|  0.5120|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|      40|       Occlusion|  0.6930|  0.5101|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|      60|       Occlusion|  0.6930|  0.5107|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|      80|       Occlusion|  0.6930|  0.5111|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|     100|       Occlusion|  0.6930|  0.5118|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|     120|       Occlusion|  0.6929|  0.5121|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|     140|       Occlusion|  0.6929|  0.5119|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|     160|       Occlusion|  0.6930|  0.5108|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|     180|       Occlusion|  0.6930|  0.5097|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|             cnn|     200|       Occlusion|  0.6930|  0.5088|
+                   ======VALIDATION======
+|           model|    loss|accuracy|           arena|
+|             cnn|  0.6932|  0.5003|       Occlusion|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|       0|  BeforeOrBehind|  0.6946|  0.5001|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|      20|  BeforeOrBehind|  0.6936|  0.4995|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|      40|  BeforeOrBehind|  0.6934|  0.4999|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|      60|  BeforeOrBehind|  0.6933|  0.5000|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|      80|  BeforeOrBehind|  0.6933|  0.4996|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|     100|  BeforeOrBehind|  0.6933|  0.4998|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|     120|  BeforeOrBehind|  0.6933|  0.4998|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|     140|  BeforeOrBehind|  0.6932|  0.4998|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|     160|  BeforeOrBehind|  0.6932|  0.4998|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|     180|  BeforeOrBehind|  0.6932|  0.4999|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|     200|  BeforeOrBehind|  0.6932|  0.4998|
+                   ======VALIDATION======
+|           model|    loss|accuracy|           arena|
+|            lstm|  0.6932|  0.5000|  BeforeOrBehind|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|       0|       Occlusion|  0.6933|  0.4991|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|      20|       Occlusion|  0.6932|  0.4995|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|      40|       Occlusion|  0.6932|  0.4994|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|      60|       Occlusion|  0.6932|  0.4995|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|      80|       Occlusion|  0.6932|  0.4997|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|     100|       Occlusion|  0.6932|  0.4997|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|     120|       Occlusion|  0.6932|  0.4996|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|     140|       Occlusion|  0.6932|  0.4997|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|     160|       Occlusion|  0.6932|  0.4997|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|     180|       Occlusion|  0.6932|  0.4997|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|            lstm|     200|       Occlusion|  0.6932|  0.4998|
+                   ======VALIDATION======
+|           model|    loss|accuracy|           arena|
+|            lstm|  0.6932|  0.4993|       Occlusion|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|       0|  BeforeOrBehind|  0.6932|  0.4987|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|      20|  BeforeOrBehind|  0.6391|  0.6156|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|      40|  BeforeOrBehind|  0.4871|  0.7324|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|      60|  BeforeOrBehind|  0.3732|  0.8032|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|      80|  BeforeOrBehind|  0.2971|  0.8467|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|     100|  BeforeOrBehind|  0.2459|  0.8748|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|     120|  BeforeOrBehind|  0.2112|  0.8939|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|     140|  BeforeOrBehind|  0.1862|  0.9073|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|     160|  BeforeOrBehind|  0.1681|  0.9172|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|     180|  BeforeOrBehind|  0.1543|  0.9247|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|     200|  BeforeOrBehind|  0.1432|  0.9309|
+                   ======VALIDATION======
+|           model|    loss|accuracy|           arena|
+|           whole|  9.4478|  0.7620|  BeforeOrBehind|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|       0|       Occlusion|  0.6942|  0.4997|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|      20|       Occlusion|  0.6934|  0.4994|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|      40|       Occlusion|  0.6932|  0.5007|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|      60|       Occlusion|  0.6932|  0.5008|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|      80|       Occlusion|  0.6932|  0.5007|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|     100|       Occlusion|  0.6932|  0.5007|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|     120|       Occlusion|  0.6932|  0.5007|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|     140|       Occlusion|  0.6932|  0.5006|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|     160|       Occlusion|  0.6932|  0.5005|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|     180|       Occlusion|  0.6932|  0.5003|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|           whole|     200|       Occlusion|  0.6932|  0.5002|
+                   ======VALIDATION======
+|           model|    loss|accuracy|           arena|
+|           whole|  0.6931|  0.4998|       Occlusion|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|       0|  BeforeOrBehind|  0.6928|  0.4999|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|      20|  BeforeOrBehind|  0.4866|  0.7693|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|      40|  BeforeOrBehind|  0.4053|  0.8139|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|      60|  BeforeOrBehind|  0.3508|  0.8418|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|      80|  BeforeOrBehind|  0.3110|  0.8610|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|     100|  BeforeOrBehind|  0.2801|  0.8759|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|     120|  BeforeOrBehind|  0.2556|  0.8877|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|     140|  BeforeOrBehind|  0.2357|  0.8974|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|     160|  BeforeOrBehind|  0.2204|  0.9048|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|     180|  BeforeOrBehind|  0.2086|  0.9105|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|     200|  BeforeOrBehind|  0.1983|  0.9153|
+                   ======VALIDATION======
+|           model|    loss|accuracy|           arena|
+|         reduced|  1.1659|  0.9020|  BeforeOrBehind|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|       0|       Occlusion|  0.6932|  0.5019|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|      20|       Occlusion|  0.6932|  0.5045|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|      40|       Occlusion|  0.6929|  0.5088|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|      60|       Occlusion|  0.6929|  0.5106|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|      80|       Occlusion|  0.6928|  0.5114|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|     100|       Occlusion|  0.6927|  0.5126|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|     120|       Occlusion|  0.6927|  0.5132|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|     140|       Occlusion|  0.6927|  0.5133|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|     160|       Occlusion|  0.6927|  0.5133|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|     180|       Occlusion|  0.6927|  0.5136|
+                    ======TRAINING======
+|           model|   epoch|           arena|    loss|accuracy|
+|         reduced|     200|       Occlusion|  0.6927|  0.5138|
+                   ======VALIDATION======
+|           model|    loss|accuracy|           arena|
+|         reduced|  0.6954|  0.4963|       Occlusion|
+import sys; print('Python %s on %s' % (sys.version, sys.platform))
